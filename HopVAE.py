@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from hflayers import HopfieldLayer
+from HopfieldLayers.hflayers import HopfieldLayer
 
 class Residual(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
