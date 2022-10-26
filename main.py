@@ -25,6 +25,11 @@ config.log_interval = 1     # how many batches to wait before logging training s
 config.learning_rate = 1e-3
 config.momentum = 0.1
 
+config.num_hiddens = 128
+config.num_residual_layers = 2
+config.num_residual_hiddens = 32
+config.num_embeddings = 512
+config.embedding_dim = 64
 
 def get_data_loaders(config):
     transform = transforms.Compose([
@@ -51,7 +56,7 @@ def train(model, train_loader, optimiser):
     train_res_recon_error = 0
 
     for X, _ in train_loader:
-        X = X.to(config.device)
+        X = X.to(model.device)
         optimiser.zero_grad()
 
         X_recon = model(X)
@@ -78,7 +83,7 @@ def test(model, test_loader):
 
     with torch.no_grad():
         for X, _ in test_loader:
-            X = X.to(config.device)
+            X = X.to(model.device)
 
             X_recon = model(X)
             recon_error = F.mse_loss(X_recon, X) / config.data_variance
@@ -102,10 +107,11 @@ def main():
 
     train_loader, val_loader, test_loader, num_classes = get_data_loaders(config)
 
-    model = HopVAE().to(device)
+    ### Add in correct parameters
+    model = HopVAE(config, device).to(device)
     optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
 
-    wandb.watch(HopVAE, log="all")
+    wandb.watch(model, log="all")
 
     train(model, train_loader, optimiser)
     test(model, test_loader)

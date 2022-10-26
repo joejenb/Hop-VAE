@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from hflayers import HopfieldLayer
+
 class Residual(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
         super(Residual, self).__init__()
@@ -101,35 +103,36 @@ class Decoder(nn.Module):
 
 
 class HopVAE(nn.Module):
-    def __init__(self, num_hiddens, num_residual_layers, num_residual_hiddens, 
-                 num_embeddings, embedding_dim, commitment_cost, decay=0):
+    def __init__(self, config, device):
         super(HopVAE, self).__init__()
 
-        self._embedding_dim = embedding_dim
+        self.device = device
 
-        self._encoder = Encoder(3, num_hiddens,
-                                num_residual_layers, 
-                                num_residual_hiddens)
+        self._embedding_dim = config.embedding_dim
 
-        self._pre_vq_conv = nn.Conv2d(in_channels=num_hiddens, 
-                                      out_channels=embedding_dim,
+        self._encoder = Encoder(3, config.num_hiddens,
+                                config.num_residual_layers, 
+                                config.num_residual_hiddens)
+
+        self._pre_vq_conv = nn.Conv2d(in_channels=config.num_hiddens, 
+                                      out_channels=config.embedding_dim,
                                       kernel_size=1, 
                                       stride=1)
 
         self._hopfield = HopfieldLayer(
-                            input_size=3,                           # R
-                            hidden_size=3,                          # W_K
-                            pattern_size=4,                         # W_V
-                            quantity=4,                             # W_K
-                            scaling=8,
+                            input_size=config.embedding_dim,                           # R
+                            hidden_size=config.embedding_dim,                          # W_K
+                            pattern_size=config.num_embeddings,                         # W_V
+                            quantity=config.num_embeddings,                             # W_K
+                            scaling=1 / (config.num_embeddings ** (1/2)),
                             stored_pattern_as_static=True,
                             state_pattern_as_static=True
                         )
 
-        self._decoder = Decoder(embedding_dim,
-                        num_hiddens, 
-                        num_residual_layers, 
-                        num_residual_hiddens)
+        self._decoder = Decoder(config.embedding_dim,
+                        config.num_hiddens, 
+                        config.num_residual_layers, 
+                        config.num_residual_hiddens)
 
     def forward(self, x):
         z = self._encoder(x)
