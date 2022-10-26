@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+import numpy as np
+
 import wandb
 
 import torchvision
@@ -30,8 +32,9 @@ config.num_residual_layers = 2
 config.num_residual_hiddens = 32
 config.num_embeddings = 512
 config.embedding_dim = 64
+config.num_channels = 1
 
-def get_data_loaders(config):
+def get_data_loaders():
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Resize(config.image_size),
@@ -42,6 +45,8 @@ def get_data_loaders(config):
     val_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
     test_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
     num_classes = 10
+
+    #data_variance = np.var(train_set.data / 255.0)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=config.batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=config.batch_size, shuffle=False)
@@ -60,7 +65,7 @@ def train(model, train_loader, optimiser):
         optimiser.zero_grad()
 
         X_recon = model(X)
-        recon_error = F.mse_loss(X_recon, X) / config.data_variance
+        recon_error = F.mse_loss(X_recon, X)# / config.data_variance
         recon_error.backward()
 
         optimiser.step()
@@ -86,7 +91,7 @@ def test(model, test_loader):
             X = X.to(model.device)
 
             X_recon = model(X)
-            recon_error = F.mse_loss(X_recon, X) / config.data_variance
+            recon_error = F.mse_loss(X_recon, X)# / config.data_variance
             
             test_res_recon_error += recon_error.item()
 
@@ -105,7 +110,7 @@ def main():
     use_cuda = not config.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    train_loader, val_loader, test_loader, num_classes = get_data_loaders(config)
+    train_loader, val_loader, test_loader, num_classes = get_data_loaders()
 
     ### Add in correct parameters
     model = HopVAE(config, device).to(device)
