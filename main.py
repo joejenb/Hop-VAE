@@ -1,3 +1,4 @@
+from matplotlib.transforms import Transform
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -32,21 +33,33 @@ config.num_residual_layers = 2
 config.num_residual_hiddens = 32
 config.num_embeddings = 512
 config.embedding_dim = 64
-config.num_channels = 1
+config.num_channels = 3
+config.data_set = "CIFAR10"
 
 def get_data_loaders():
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize(config.image_size),
-        transforms.Normalize((0.1307,), (0.3081,))
-        ])
+    if config.data_set == "MNIST":
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize(config.image_size),
+            transforms.Normalize((0.1307,), (0.3081,))
+            ])
 
-    train_set = torchvision.datasets.MNIST(root="/MNIST/", train=True, download=True, transform=transform)
-    val_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
-    test_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
-    num_classes = 10
+        train_set = torchvision.datasets.MNIST(root="/MNIST/", train=True, download=True, transform=transform)
+        val_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
+        test_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
+        num_classes = 10
+        config.data_variance = 1
 
-    #data_variance = np.var(train_set.data / 255.0)
+    elif config.data_set == "CIFAR10":
+        transform=transforms.Compose([
+                                      transforms.ToTensor(),
+                                      transforms.Normalize((0.5,0.5,0.5), (1.0,1.0,1.0))
+                                    ])
+        train_set = torchvision.datasets.CIFAR10(root="data", train=True, download=True, transform=transform)
+        val_set = torchvision.datasets.CIFAR10(root="data", train=False, download=True, transform=transform)
+        test_set = torchvision.datasets.CIFAR10(root="data", train=False, download=True, transform=transform)
+        num_classes = 10
+        config.data_variance = np.var(train_set.data / 255.0)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=config.batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=config.batch_size, shuffle=False)
@@ -65,7 +78,7 @@ def train(model, train_loader, optimiser):
         optimiser.zero_grad()
 
         X_recon = model(X)
-        recon_error = F.mse_loss(X_recon, X)# / config.data_variance
+        recon_error = F.mse_loss(X_recon, X) / config.data_variance
         recon_error.backward()
 
         optimiser.step()
@@ -91,7 +104,7 @@ def test(model, test_loader):
             X = X.to(model.device)
 
             X_recon = model(X)
-            recon_error = F.mse_loss(X_recon, X)# / config.data_variance
+            recon_error = F.mse_loss(X_recon, X) / config.data_variance
             
             test_res_recon_error += recon_error.item()
 
@@ -118,8 +131,9 @@ def main():
 
     wandb.watch(model, log="all")
 
-    train(model, train_loader, optimiser)
-    test(model, test_loader)
+    for _ in range(config.epochs):
+        train(model, train_loader, optimiser)
+        test(model, test_loader)
 
 if __name__ == '__main__':
     main()
