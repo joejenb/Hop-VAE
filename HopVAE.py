@@ -120,7 +120,7 @@ class HopVAE(nn.Module):
                                       stride=1)
 
         self._hopfield = HopfieldLayer(
-                            input_size=config.embedding_dim,                           # R
+                            input_size=4096,#config.embedding_dim,                           # R
                             quantity=config.num_embeddings,                             # W_K
                             #scaling=1 / (config.num_embeddings ** (1/2)),
                             stored_pattern_as_static=True,
@@ -133,17 +133,47 @@ class HopVAE(nn.Module):
                         config.num_residual_layers, 
                         config.num_residual_hiddens)
 
-    def forward(self, x):
-        z = self._encoder(x)
-        z = self._pre_vq_conv(z)
+    def forward(self, X):
+        Z = self._encoder(X)
+        Z = self._pre_vq_conv(Z)
 
-        z_shape = z.shape
-        flat_z = z.view(z_shape[0], z_shape[1], self._embedding_dim)
+        Z_shape = Z.shape
+        flat_Z = Z.view(Z_shape[0], -1)
+        flat_Zt = flat_Z.t()
 
-        flat_z_quantised = self._hopfield(flat_z)#flat_z)
+        '''Z_mean = flat_Z.mean(dim=0, keepdim=True)
+        Z_centered = flat_Z - Z_mean
+        Z_centered_t = Z_centered.t()
 
-        z_quantised = flat_z_quantised.view(z_shape)
+        'ZtZ = Z_centered_t.matmul(Z_centered)
+        eigVals, eigVecs = torch.linalg.eigh(ZtZ) #the eigvecs are sorted in ascending eigenvalue order.
 
-        x_recon = self._decoder(z_quantised)
+        V = ZtZ.matmul(eigVecs.detach()) / eigVals.detach()
+        Vt = V.t()
 
-        return x_recon
+        print(eigVals.size())
+        print(eigVecs.size())
+        print(ZtZ.size())
+        print(V.size())
+        print(Vt.size())
+        Vt_quantised = self._hopfield(Vt.unsqueeze(0)).squeeze()
+        V_quantised = Vt_quantised.t()
+
+        flat_Z_quantised = V_quantised.matmul(eigVals).matmul(Vt_quantised) + Z_mean
+        '''
+
+        # Want columns of U to be quantised
+        U, S, Vt = torch.linalg.svd(flat_Zt, full_matrices=False)
+        Ud = flat_Zt.matmul(Vt.t()) / S
+
+        # Try original quantisation but with intermediate svd
+        Ud_quantised = self._hopfield(Ud.t().unsqueeze(0)).squeeze(0).t()
+
+        flat_Zt_quantised = Ud_quantised.matmul(torch.diag(S)).matmul(Vt)
+        flat_Z_quantised = flat_Zt_quantised.t()
+
+        Z_quantised = flat_Z_quantised.view(Z_shape)
+
+        X_recon = self._decoder(Z_quantised)
+
+        return X_recon

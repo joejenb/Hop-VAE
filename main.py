@@ -19,7 +19,7 @@ wandb.watch_called = False # Re-run the model without restarting the runtime, un
 
 # WandB – Config is a variable that holds and saves hyperparameters and inputs
 config = wandb.config          # Initialize config
-config.batch_size = 256          # input batch size for training (default: 64)
+config.batch_size = 1024          # input batch size for training (default: 64)
 config.epochs = 50             # number of epochs to train (default: 10)
 config.no_cuda = False         # disables CUDA training
 config.seed = 42               # random seed (default: 42)
