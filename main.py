@@ -100,13 +100,16 @@ def test(model, test_loader):
     example_reconstructions = []
 
     with torch.no_grad():
-        for X, _ in test_loader:
-            X = X.to(model.device)
+        X, _ = next(iter(test_loader))
+        X = X.to(model.device)
+        for Y, _ in test_loader:
+            Y = Y.to(model.device)
 
-            X_recon = model(X)
+            X_recon = model.interpolate(X, Y)
             recon_error = F.mse_loss(X_recon, X) / config.data_variance
             
             test_res_recon_error += recon_error.item()
+            X = Y
 
         example_images = [wandb.Image(img) for img in X]
         example_reconstructions = [wandb.Image(recon_img) for recon_img in X_recon]

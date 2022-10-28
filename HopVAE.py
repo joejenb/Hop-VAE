@@ -133,6 +133,26 @@ class HopVAE(nn.Module):
                         config.num_residual_layers, 
                         config.num_residual_hiddens)
 
+    def interpolate(self, x, y):
+        zx = self._encoder(x)
+        zx = self._pre_vq_conv(zx)
+
+        zy = self._encoder(y)
+        zy = self._pre_vq_conv(zy)
+
+        z = (zx + zy) / 2
+
+        z_shape = z.shape
+        flat_z = z.view(z_shape[0], z_shape[1], self._embedding_dim)
+
+        flat_z_quantised = self._hopfield(flat_z)#flat_z)
+
+        z_quantised = flat_z_quantised.view(z_shape)
+
+        xy_recon = self._decoder(z_quantised)
+
+        return xy_recon
+
     def forward(self, x):
         z = self._encoder(x)
         z = self._pre_vq_conv(z)
