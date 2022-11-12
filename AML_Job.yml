@@ -3,7 +3,7 @@ $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 #enter path to your script files
 code: '.'
 
-experiment_name: VQ-VAE
+experiment_name: Hop-VAE
 
 #use scripts in Python, R, Java, Julia, C#. Here we have shown python
 command: python main.py --data ${{inputs.FFHQ}}

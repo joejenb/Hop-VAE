@@ -1,39 +1,10 @@
+from Residual import ResidualStack
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from HopfieldLayers.hflayers import HopfieldLayer
-
-class Residual(nn.Module):
-    def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
-        super(Residual, self).__init__()
-        self._block = nn.Sequential(
-            nn.ReLU(True),
-            nn.Conv2d(in_channels=in_channels,
-                      out_channels=num_residual_hiddens,
-                      kernel_size=3, stride=1, padding=1, bias=False),
-            nn.ReLU(True),
-            nn.Conv2d(in_channels=num_residual_hiddens,
-                      out_channels=num_hiddens,
-                      kernel_size=1, stride=1, bias=False)
-        )
-    
-    def forward(self, x):
-        return x + self._block(x)
-
-
-class ResidualStack(nn.Module):
-    def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
-        super(ResidualStack, self).__init__()
-        self._num_residual_layers = num_residual_layers
-        self._layers = nn.ModuleList([Residual(in_channels, num_hiddens, num_residual_hiddens)
-                             for _ in range(self._num_residual_layers)])
-
-    def forward(self, x):
-        for i in range(self._num_residual_layers):
-            x = self._layers[i](x)
-        return F.relu(x)
-
 
 class Encoder(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
@@ -43,14 +14,22 @@ class Encoder(nn.Module):
                                  out_channels=num_hiddens//2,
                                  kernel_size=4,
                                  stride=2, padding=1)
+
         self._conv_2 = nn.Conv2d(in_channels=num_hiddens//2,
                                  out_channels=num_hiddens,
                                  kernel_size=4,
                                  stride=2, padding=1)
+
         self._conv_3 = nn.Conv2d(in_channels=num_hiddens,
                                  out_channels=num_hiddens,
                                  kernel_size=3,
                                  stride=1, padding=1)
+
+        self._conv_4 = nn.Conv2d(in_channels=num_hiddens,
+                                 out_channels=num_hiddens,
+                                 kernel_size=3,
+                                 stride=1, padding=1)
+
         self._residual_stack = ResidualStack(in_channels=num_hiddens,
                                              num_hiddens=num_hiddens,
                                              num_residual_layers=num_residual_layers,
@@ -64,6 +43,9 @@ class Encoder(nn.Module):
         x = F.relu(x)
         
         x = self._conv_3(x)
+        x = F.relu(x)
+
+        x = self._conv_4(x)
         return self._residual_stack(x)
 
 
@@ -85,8 +67,13 @@ class Decoder(nn.Module):
                                                 out_channels=num_hiddens//2,
                                                 kernel_size=4, 
                                                 stride=2, padding=1)
-        
+
         self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
+                                                out_channels=num_hiddens//2,
+                                                kernel_size=3, 
+                                                stride=1, padding=1)
+
+        self._conv_trans_3 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
                                                 out_channels=out_channels,
                                                 kernel_size=4, 
                                                 stride=2, padding=1)
@@ -98,13 +85,16 @@ class Decoder(nn.Module):
         
         x = self._conv_trans_1(x)
         x = F.relu(x)
+
+        x = self._conv_trans_2(x)
+        x = F.relu(x)
         
-        return self._conv_trans_2(x)
+        return self._conv_trans_3(x)
 
 
-class HopVAE(nn.Module):
+class VQVAE(nn.Module):
     def __init__(self, config, device):
-        super(HopVAE, self).__init__()
+        super(VQVAE, self).__init__()
 
         self.device = device
 
@@ -115,7 +105,7 @@ class HopVAE(nn.Module):
                                 config.num_residual_hiddens)
 
         self._pre_vq_conv = nn.Conv2d(in_channels=config.num_hiddens, 
-                                      out_channels=config.embedding_dim,
+                                      out_channels=config.num_filters,
                                       kernel_size=1, 
                                       stride=1)
 
@@ -127,31 +117,36 @@ class HopVAE(nn.Module):
                             state_pattern_as_static=True
                         )
 
-        self._decoder = Decoder(config.embedding_dim,
-                        config.num_channels,
-                        config.num_hiddens, 
-                        config.num_residual_layers, 
-                        config.num_residual_hiddens)
+        self._decoder = Decoder(config.num_filters,
+                            config.num_channels,
+                            config.num_hiddens, 
+                            config.num_residual_layers, 
+                            config.num_residual_hiddens
+                        )
+
 
     def interpolate(self, x, y):
-        zx = self._encoder(x)
-        zx = self._pre_vq_conv(zx)
+        if (x.size() == y.size()):
+            zx = self._encoder(x)
+            zx = self._pre_vq_conv(zx)
 
-        zy = self._encoder(y)
-        zy = self._pre_vq_conv(zy)
+            zy = self._encoder(y)
+            zy = self._pre_vq_conv(zy)
 
-        z = (zx + zy) / 2
+            z = (zx + zy) / 2
+            
+            z_shape = z.shape
+            flat_z = z.view(z_shape[0], z_shape[1], self._embedding_dim)
 
-        z_shape = z.shape
-        flat_z = z.view(z_shape[0], z_shape[1], self._embedding_dim)
+            flat_z_quantised = self._hopfield(flat_z)#flat_z)
 
-        flat_z_quantised = self._hopfield(flat_z)#flat_z)
+            z_quantised = flat_z_quantised.view(z_shape)
 
-        z_quantised = flat_z_quantised.view(z_shape)
+            xy_recon = self._decoder(z_quantised)
 
-        xy_recon = self._decoder(z_quantised)
+            return xy_recon
 
-        return xy_recon
+        return x
 
     def forward(self, x):
         z = self._encoder(x)
