@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from HopfieldLayers.hflayers import HopfieldLayer
+from hflayers import HopfieldLayer
 
 class Encoder(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
@@ -92,9 +92,9 @@ class Decoder(nn.Module):
         return self._conv_trans_3(x)
 
 
-class VQVAE(nn.Module):
+class HopVAE(nn.Module):
     def __init__(self, config, device):
-        super(VQVAE, self).__init__()
+        super(HopVAE, self).__init__()
 
         self.device = device
 
@@ -135,14 +135,18 @@ class VQVAE(nn.Module):
 
             z = (zx + zy) / 2
             
+            z = z.permute(0, 2, 3, 1).contiguous()
             z_shape = z.shape
-            flat_z = z.view(z_shape[0], z_shape[1], self._embedding_dim)
-
+            
+            # Flatten input
+            flat_z = z.view(z_shape[0], -1, self._embedding_dim)
             flat_z_quantised = self._hopfield(flat_z)#flat_z)
 
             z_quantised = flat_z_quantised.view(z_shape)
+            z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             xy_recon = self._decoder(z_quantised)
+
 
             return xy_recon
 
@@ -152,12 +156,15 @@ class VQVAE(nn.Module):
         z = self._encoder(x)
         z = self._pre_vq_conv(z)
 
+        z = z.permute(0, 2, 3, 1).contiguous()
         z_shape = z.shape
-        flat_z = z.view(z_shape[0], z_shape[1], self._embedding_dim)
-
+        
+        # Flatten input
+        flat_z = z.view(z_shape[0], -1, self._embedding_dim)
         flat_z_quantised = self._hopfield(flat_z)#flat_z)
 
         z_quantised = flat_z_quantised.view(z_shape)
+        z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
         x_recon = self._decoder(z_quantised)
 
