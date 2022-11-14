@@ -109,13 +109,20 @@ class HopVAE(nn.Module):
                                       kernel_size=1, 
                                       stride=1)
 
-        self._hopfield = HopfieldLayer(
+        self._vector_memory = HopfieldLayer(
                             input_size=config.embedding_dim,                           # R
                             quantity=config.num_embeddings,                             # W_K
-                            #scaling=1 / (config.num_embeddings ** (1/2)),
                             stored_pattern_as_static=True,
                             state_pattern_as_static=True
                         )
+
+        self._representation_memory = HopfieldLayer(
+                            input_size=config.embedding_dim * (config.representation_dim ** 2),                           # R
+                            quantity=2 ^ 200,                             # W_K
+                            stored_pattern_as_static=True,
+                            state_pattern_as_static=True
+                        )
+
 
         self._decoder = Decoder(config.num_filters,
                             config.num_channels,
@@ -139,14 +146,20 @@ class HopVAE(nn.Module):
             z_shape = z.shape
             
             # Flatten input
-            flat_z = z.view(z_shape[0], -1, self._embedding_dim)
-            flat_z_quantised = self._hopfield(flat_z)#flat_z)
+            z_vects = z.view(z_shape[0], -1, self._embedding_dim)
 
-            z_quantised = flat_z_quantised.view(z_shape)
+            z_vects_quantised = self._vector_memory(z_vects).contiguous()
+            flat_z = z_vects_quantised.view(z_shape[0], 1, -1)
+
+            representation_quantised = self._representation_memory(flat_z).contiguous()
+
+            z_vects = representation_quantised.view(z_vects.shape)
+            z_vects_quantised = self._vector_memory(z_vects).contiguous()
+
+            z_quantised = z_vects.view(z_shape)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             xy_recon = self._decoder(z_quantised)
-
 
             return xy_recon
 
@@ -160,12 +173,19 @@ class HopVAE(nn.Module):
         z_shape = z.shape
         
         # Flatten input
-        flat_z = z.view(z_shape[0], -1, self._embedding_dim)
-        flat_z_quantised = self._hopfield(flat_z)#flat_z)
+        z_vects = z.view(z_shape[0], -1, self._embedding_dim)
 
-        z_quantised = flat_z_quantised.view(z_shape)
+        z_vects_quantised = self._vector_memory(z_vects).contiguous()
+        flat_z = z_vects_quantised.view(z_shape[0], 1, -1)
+
+        representation_quantised = self._representation_memory(flat_z.detach()).contiguous()
+        representation_quantised = representation_quantised.view(z_shape)
+
+        z_quantised = z_vects.view(z_shape)
+        representation_error = F.mse_loss(representation_quantised, z_quantised.detach())
+
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
         x_recon = self._decoder(z_quantised)
 
-        return x_recon
+        return x_recon, representation_error

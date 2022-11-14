@@ -37,13 +37,16 @@ config.seed = 42               # random seed (default: 42)
 config.log_interval = 1     # how many batches to wait before logging training status
 config.learning_rate = 1e-3
 config.momentum = 0.1
+config.dropout_prob = 0.1
 
 config.num_hiddens = 128
 config.num_residual_layers = 3
 config.num_residual_hiddens = 32
 config.num_embeddings = 512
-config.num_filters = 64
+config.num_filters = 32
 config.embedding_dim = config.num_filters
+config.representation_dim = 16
+config.num_transforms = 2
 config.commitment_cost = 0.25
 config.decay = 0.99
 
@@ -103,10 +106,10 @@ def train(model, train_loader, optimiser):
         X = X.to(model.device)
         optimiser.zero_grad()
 
-        X_recon = model(X)
+        X_recon, representation_error = model(X)
 
         recon_error = F.mse_loss(X_recon, X) / config.data_variance
-        loss = recon_error
+        loss = recon_error + representation_error
 
         loss.backward()
         optimiser.step()
@@ -123,22 +126,25 @@ def test(model, test_loader):
     model.eval() 
 
     test_res_recon_error = 0
+    test_res_repres_error = 0
 
     # Last batch is of different size so simplest to do like this
-    Y, _ = next(iter(test_loader))
+    iterator = iter(test_loader)
+    Y, _ = next(iterator)
     Y = Y.to(model.device)
 
-    Z, _ = next(iter(test_loader))
+    Z, _ = next(iterator)
     Z = Z.to(model.device)
 
     with torch.no_grad():
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            X_recon = model(X)
+            X_recon, representation_error = model(X)
             recon_error = F.mse_loss(X_recon, X) / config.data_variance
             
             test_res_recon_error += recon_error.item()
+            test_res_repres_error += representation_error.item()
 
         ZY_inter = model.interpolate(Z, Y)
 
@@ -154,7 +160,8 @@ def test(model, test_loader):
         "Test Interpolations": example_interpolations,
         "Test Z": example_Z,
         "Test Y": example_Y,
-        "Test Reconstruction Error": test_res_recon_error / len(test_loader.dataset)
+        "Test Reconstruction Error": test_res_recon_error / len(test_loader.dataset),
+        "Test Representation Quantisation Error": test_res_repres_error / len(test_loader.dataset)
         })
 
 
