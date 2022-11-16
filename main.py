@@ -35,15 +35,20 @@ config.epochs = 100             # number of epochs to train (default: 10)
 config.no_cuda = False         # disables CUDA training
 config.seed = 42               # random seed (default: 42)
 config.log_interval = 1     # how many batches to wait before logging training status
-config.learning_rate = 1e-3
+config.learning_rate = 1e-5
 config.momentum = 0.1
+config.dropout = 0.1
+config.attention_dropout = 0.9
 
 config.num_hiddens = 128
 config.num_residual_layers = 3
 config.num_residual_hiddens = 32
 config.num_embeddings = 512
-config.num_filters = 64
+config.num_filters = 32
 config.embedding_dim = config.num_filters
+config.representation_dim = 16
+config.num_transforms = 2
+config.num_heads = 4
 config.commitment_cost = 0.25
 config.decay = 0.99
 
@@ -125,10 +130,11 @@ def test(model, test_loader):
     test_res_recon_error = 0
 
     # Last batch is of different size so simplest to do like this
-    Y, _ = next(iter(test_loader))
+    iterator = iter(test_loader)
+    Y, _ = next(iterator)
     Y = Y.to(model.device)
 
-    Z, _ = next(iter(test_loader))
+    Z, _ = next(iterator)
     Z = Z.to(model.device)
 
     with torch.no_grad():
@@ -167,7 +173,7 @@ def main():
 
     ### Add in correct parameters
     model = HopVAE(config, device).to(device)
-    optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
+    optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=True)
 
     wandb.watch(model, log="all")
 
