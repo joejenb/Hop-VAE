@@ -100,6 +100,7 @@ class HopVAE(nn.Module):
         super(HopVAE, self).__init__()
 
         self.device = device
+        self.transformer_training = False
 
         self.attention_dropout = config.attention_dropout 
         self.representation_dim = config.representation_dim
@@ -118,13 +119,13 @@ class HopVAE(nn.Module):
         multi_head_attention_block = Hopfield(input_size=config.embedding_dim, num_heads=config.num_heads)
         transformer_block = HopfieldEncoderLayer(multi_head_attention_block)
 
-        self._q_memory = HopfieldLayer(input_size=config.embedding_dim, quantity=2*config.num_embeddings, stored_pattern_as_static=True, state_pattern_as_static=True)
+        self._q_memory = HopfieldLayer(input_size=config.embedding_dim, quantity=config.num_embeddings, stored_pattern_as_static=True, state_pattern_as_static=True)
         self._q_transformer = HopfieldEncoder(encoder_layer=transformer_block, num_layers=config.num_transforms, embedding_dim=config.embedding_dim)
 
-        self.z_memory = HopfieldLayer(input_size=config.embedding_dim, quantity=int(config.num_embeddings), stored_pattern_as_static=True, state_pattern_as_static=True)
+        self.z_memory = HopfieldLayer(input_size=2*config.embedding_dim, quantity=config.num_embeddings, stored_pattern_as_static=True, state_pattern_as_static=True)
 
         self.z_transformer = HopfieldEncoder(encoder_layer=transformer_block, num_layers=config.num_transforms, embedding_dim=config.embedding_dim)
-        self.q_memory = HopfieldLayer(input_size=config.embedding_dim, quantity=2*config.num_embeddings, stored_pattern_as_static=True, state_pattern_as_static=True)
+        self.q_memory = HopfieldLayer(input_size=config.embedding_dim, quantity=config.num_embeddings, stored_pattern_as_static=True, state_pattern_as_static=True)
 
         self.decoder = Decoder(config.num_filters,
                             config.num_channels,
@@ -142,17 +143,14 @@ class HopVAE(nn.Module):
             _qx = _qx.permute(0, 2, 3, 1).contiguous()
             _qx_shape = _qx.shape
 
-            _qx_vects = _qx.view(_qx_shape[0], -1, self.embedding_dim)
-            _qx_vects_quantised = self._q_memory(_qx_vects)
-
             _qy = self.encoder(y)
             _qy = self.pre_vq_conv(_qy)
 
             _qy = _qy.permute(0, 2, 3, 1).contiguous()
-            _qy_shape = _qy.shape
 
-            _qy_vects = _qy.view(_qy_shape[0], -1, self.embedding_dim)
-            _qy_vects_quantised = self._q_memory(_qy_vects)
+            _qxy = (_qx + _qy) / 2
+            _qxy_vects = _qxy.view(_qx_shape[0], -1, self.embedding_dim)
+            _qxy_vects_quantised = self._q_memory(_qxy_vects)
 
             _q_attention_mask = z_attention_mask = None
             if False:#self.training:
@@ -162,14 +160,17 @@ class HopVAE(nn.Module):
                 z_attention_mask = torch.ones((self.representation_dim**2, self.representation_dim**2)).to(self.device)
                 z_attention_mask = F.dropout(z_attention_mask, p=1-self.attention_dropout).bool()
 
-            zx_vects = self._q_transformer(_qx_vects_quantised, mask=_q_attention_mask)
-            zy_vects = self._q_transformer(_qy_vects_quantised, mask=_q_attention_mask)
+            if self.transformer_training:
+                z_vects = self._q_transformer(_qxy_vects_quantised, mask=_q_attention_mask).contiguous()
 
-            z_vects = (zx_vects + zy_vects) / 2
-            z_vects_quantised = self.z_memory(z_vects)
+                z_vects = z_vects.view(_qx_shape[0], -1, 2*self.embedding_dim)
+                z_vects_quantised = self.z_memory(z_vects).contiguous()
+                z_vects_quantised = z_vects_quantised.view(_qx_shape[0], -1, self.embedding_dim)
 
-            q_vects = self.z_transformer(z_vects_quantised, mask=z_attention_mask)
-            q_vects_quantised = self.q_memory(q_vects).contiguous()
+                q_vects = self.z_transformer(z_vects_quantised, mask=z_attention_mask)
+                q_vects_quantised = self.q_memory(q_vects).contiguous()
+            else:
+                q_vects_quantised = _qxy_vects_quantised
 
             q = q_vects_quantised.view(_qx_shape)
             q = q.permute(0, 3, 1, 2).contiguous()
@@ -199,11 +200,18 @@ class HopVAE(nn.Module):
             z_attention_mask = torch.ones((self.representation_dim**2, self.representation_dim**2)).to(self.device)
             z_attention_mask = F.dropout(z_attention_mask, p=1-self.attention_dropout).bool()
 
-        z_vects = self._q_transformer(_q_vects_quantised, mask=_q_attention_mask)
-        z_vects_quantised = self.z_memory(z_vects)
+        if self.transformer_training:
+            z_vects = self._q_transformer(_q_vects_quantised, mask=_q_attention_mask).contiguous()
 
-        q_vects = self.z_transformer(z_vects_quantised, mask=z_attention_mask)
-        q_vects_quantised = self.q_memory(q_vects).contiguous()
+            z_vects = z_vects.view(_q_shape[0], -1, 2*self.embedding_dim)
+            z_vects_quantised = self.z_memory(z_vects).contiguous()
+            z_vects_quantised = z_vects_quantised.view(_q_shape[0], -1, self.embedding_dim)
+
+            q_vects = self.z_transformer(z_vects_quantised, mask=z_attention_mask)
+            q_vects_quantised = self.q_memory(q_vects).contiguous()
+        else:
+            q_vects_quantised = _q_vects_quantised
+
 
         q = q_vects_quantised.view(_q_shape)
         q = q.permute(0, 3, 1, 2).contiguous()

@@ -35,7 +35,7 @@ config.epochs = 100             # number of epochs to train (default: 10)
 config.no_cuda = False         # disables CUDA training
 config.seed = 42               # random seed (default: 42)
 config.log_interval = 1     # how many batches to wait before logging training status
-config.learning_rate = 1e-6
+config.learning_rate = 1e-3
 config.momentum = 0.1
 config.dropout = 0.1
 config.attention_dropout = 0.9
@@ -174,13 +174,19 @@ def main():
     ### Add in correct parameters
     model = HopVAE(config, device).to(device)
     optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=True)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimiser, milestones=[10], gamma=5e-2)
 
     wandb.watch(model, log="all")
 
     for epoch in range(config.epochs):
 
+        if epoch > 10:
+            model.q_memory.load_state_dict(model._q_memory.state_dict())
+            model.transformer_training = True
+
         train(model, train_loader, optimiser)
         test(model, test_loader)
+        scheduler.step()
 
         if not epoch % 5:
             torch.save(model, f'outputs/VQVAE-{config.batch_size}.pth', pickle_module=dill)
