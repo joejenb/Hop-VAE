@@ -25,7 +25,7 @@ parser.add_argument("--data", type=str)
 args = parser.parse_args()
 PATH = args.data 
 
-wandb.init(project="Hop-VAE", config=config)
+wandb.init(project="Hop-VAE", config=hop_config)
 wandb.watch_called = False # Re-run the model without restarting the runtime, unnecessary after our next release
 class MakeConfig:
     def __init__(self, config):
