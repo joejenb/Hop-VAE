@@ -126,6 +126,7 @@ class HopVAE(nn.Module):
         z = torch.randn(1, self.representation_dim * self.representation_dim, self.embedding_dim).to(self.device)
 
         z_quantised = self.hopfield(z)
+        z_quantised = z_quantised.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
         x_sample = self.decoder(z_quantised)
