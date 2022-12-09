@@ -123,7 +123,7 @@ class HopVAE(nn.Module):
                         config.num_residual_hiddens)
 
     def sample(self):
-        z = torch.randn(1, self.representation_dim * self.representation_dim, self.embedding_dim)        
+        z = torch.randn(1, self.representation_dim * self.representation_dim, self.embedding_dim).to(self.device)
 
         z_quantised = self.hopfield(z)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
