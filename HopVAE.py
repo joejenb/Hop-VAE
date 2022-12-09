@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from hflayers import HopfieldLayer
 from Residual import ResidualStack
 
+from PixelCNN.PixelCNN import PixelCNN
+
 class Encoder(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
         super(Encoder, self).__init__()
@@ -92,7 +94,7 @@ class Decoder(nn.Module):
         return self.conv_trans_3(x)
 
 class HopVAE(nn.Module):
-    def __init__(self, config, device):
+    def __init__(self, config, prior_config, device):
         super(HopVAE, self).__init__()
 
         self.device = device
