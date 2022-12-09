@@ -98,6 +98,7 @@ class HopVAE(nn.Module):
         self.device = device
 
         self.embedding_dim = config.embedding_dim
+        self.representation_dim = config.representation_dim
 
         self.encoder = Encoder(config.num_channels, config.num_hiddens,
                                 config.num_residual_layers, 
