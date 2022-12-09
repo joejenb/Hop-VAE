@@ -89,10 +89,10 @@ def train(model, train_loader, optimiser, scheduler):
         X = X.to(model.device)
         optimiser.zero_grad()
 
-        X_recon, quant_error, Z_prediction_error = model(X)
+        X_recon = model(X)
 
         recon_error = F.mse_loss(X_recon, X) / config.data_variance
-        loss = recon_error + quant_error + Z_prediction_error
+        loss = recon_error
 
         loss.backward()
         optimiser.step()
@@ -101,7 +101,7 @@ def train(model, train_loader, optimiser, scheduler):
 
     scheduler.step()
     wandb.log({
-        "Train Reconstruction Error": (train_res_recon_error + Z_prediction_error) / len(train_loader.dataset)
+        "Train Reconstruction Error": (train_res_recon_error) / len(train_loader.dataset)
     })
 
 
@@ -123,7 +123,7 @@ def test(model, test_loader):
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            X_recon, _, _ = model(X)
+            X_recon = model(X)
             recon_error = F.mse_loss(X_recon, X) / config.data_variance
             
             test_res_recon_error += recon_error.item()
