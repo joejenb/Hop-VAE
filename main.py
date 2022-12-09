@@ -16,7 +16,8 @@ import wandb
 
 from HopVAE import HopVAE
 
-from configs.ffhq_64_config import config
+from configs.ffhq_64_config import config as hop_config
+from PixelCNN.configs.ffhq_17_config import config as prior_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", type=str)
@@ -32,6 +33,9 @@ class MakeConfig:
 
 # WandB – Config is a variable that holds and saves hyperparameters and inputs
 config = wandb.config          # Initialize config
+hop_config = MakeConfig(hop_config)
+prior_config = MakeConfig(prior_config)
+prior_config.num_channels = hop_config.embedding_dim
 
 def get_data_loaders():
     if config.data_set == "MNIST":
@@ -89,7 +93,7 @@ def train(model, train_loader, optimiser, scheduler):
         X = X.to(model.device)
         optimiser.zero_grad()
 
-        X_recon = model(X)
+        X_recon, Z_prediction_error = model(X)
 
         recon_error = F.mse_loss(X_recon, X) / config.data_variance
         loss = recon_error
@@ -101,7 +105,7 @@ def train(model, train_loader, optimiser, scheduler):
 
     scheduler.step()
     wandb.log({
-        "Train Reconstruction Error": (train_res_recon_error) / len(train_loader.dataset)
+        "Train Reconstruction Error": (train_res_recon_error + Z_prediction_error) / len(train_loader.dataset)
     })
 
 
@@ -123,7 +127,7 @@ def test(model, test_loader):
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            X_recon = model(X)
+            X_recon, _ = model(X)
             recon_error = F.mse_loss(X_recon, X) / config.data_variance
             
             test_res_recon_error += recon_error.item()
@@ -157,7 +161,7 @@ def main():
     checkpoint_location = f'checkpoints/{config.data_set}-{config.image_size}.ckpt'
     output_location = f'outputs/{config.data_set}-{config.image_size}.ckpt'
 
-    model = HopVAE(config, device).to(device)
+    model = HopVAE(hop_config, prior_config, device).to(device)
     if os.path.exists(checkpoint_location):
         #model.load_state_dict(torch.load(checkpoint_location, map_location=device))
         pre_state_dict = torch.load(checkpoint_location, map_location=device)
@@ -180,6 +184,11 @@ def main():
     wandb.watch(model, log="all")
 
     for epoch in range(config.epochs):
+
+        if epoch > config.prior_start and not model.fit_prior:
+            model.fit_prior = True
+            optimiser = optim.Adam(model.prior.parameters(), lr=prior_config.learning_rate)
+            scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
 
         train(model, train_loader, optimiser, scheduler)
         test(model, test_loader)

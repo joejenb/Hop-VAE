@@ -115,6 +115,9 @@ class HopVAE(nn.Module):
                             stored_pattern_as_static=True,
                             state_pattern_as_static=True
                         )
+        
+        self.fit_prior = False
+        self.prior = PixelCNN(prior_config, device)
 
         self.decoder = Decoder(config.embedding_dim,
                         config.num_channels,
@@ -123,7 +126,9 @@ class HopVAE(nn.Module):
                         config.num_residual_hiddens)
 
     def sample(self):
-        z = torch.randn(1, self.representation_dim * self.representation_dim, self.embedding_dim).to(self.device)
+        z = self.prior.sample().type(torch.int64)
+        z = z.permute(0, 2, 3, 1).contiguous()
+        z = z.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
         z_quantised = self.hopfield(z)
         z_quantised = z_quantised.view(1, self.representation_dim, self.representation_dim, self.embedding_dim)
@@ -150,6 +155,15 @@ class HopVAE(nn.Module):
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
+            z_denoised = self.prior.denoise(z_quantised).type(torch.int64)
+
+            z_denoised = z_denoised.permute(0, 2, 3, 1).contiguous()
+            z_denoised = z_denoised.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+
+            z_quantised = self.hopfield(z_denoised)
+            z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+            z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
+
             xy_inter = self.decoder(z_quantised)
 
             return xy_inter
@@ -166,6 +180,21 @@ class HopVAE(nn.Module):
         z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
+        if self.fit_prior:
+            #May need to make indices type long
+            z_pred = self.prior(z_quantised)
+
+            z_pred = z_pred.permute(0, 2, 3, 1).contiguous()
+            z_pred = z_pred.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+            z_pred_quantised = self.hopfield(z_pred)
+
+            z_cross_entropy = F.cross_entropy(z_pred_quantised, z_quantised, reduction='none')
+            z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
+            z_prediction_error = z_prediction_error.mean()            
+            
+            x_recon = self._decoder(z_pred_quantised)
+            return x_recon.detach(), z_prediction_error
+
         x_recon = self.decoder(z_quantised)
 
-        return x_recon
+        return x_recon, 0

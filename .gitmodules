@@ -1,0 +1,3 @@
+[submodule "PixelCNN"]
+	path = PixelCNN
+	url = https://github.com/joejenb/PixelCNN.git
