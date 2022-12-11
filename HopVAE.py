@@ -212,7 +212,6 @@ class HopVAE(nn.Module):
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        print(z.max(), z.min())
         z = z * self.num_levels
         z_rounded = torch.round(z)
         z_rounded_diff = z_rounded - z
@@ -230,7 +229,6 @@ class HopVAE(nn.Module):
         if self.fit_prior:
             #start by assuming that num_categories and num_levels are the same 
 
-            print(z_rounded.max(), z_rounded.min())
             z_pred = self.prior(z_rounded.type(torch.int64))
 
             z_cross_entropy = F.cross_entropy(z_pred, z_rounded.long().detach(), reduction='none')
