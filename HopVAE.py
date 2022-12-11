@@ -144,8 +144,8 @@ class HopVAE(nn.Module):
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
         z_rounded = torch.round(z_quantised * self.num_levels)
-        z_rounded_diff = z_rounded - z
-        z_rounded = z + z_rounded_diff
+        z_rounded_diff = z_rounded - z_quantised
+        z_rounded = z_quantised + z_rounded_diff
         
         x_sample = self._decoder(z_rounded / self.num_levels)
 
@@ -173,8 +173,8 @@ class HopVAE(nn.Module):
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             z_rounded = torch.round(z_quantised * self.num_levels)
-            z_rounded_diff = z_rounded - z
-            z_rounded = z + z_rounded_diff
+            z_rounded_diff = z_rounded - z_quantised
+            z_rounded = z_quantised + z_rounded_diff
 
             #start by assuming that num_categories and num_levels are the same 
             z_rounded = self.prior.denoise(z_rounded)
@@ -187,8 +187,8 @@ class HopVAE(nn.Module):
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             z_pred_rounded = torch.round(z_quantised * self.num_levels)
-            z_pred_rounded_diff = z_rounded - z
-            z_pred_rounded = z + z_rounded_diff
+            z_pred_rounded_diff = z_rounded - z_quantised
+            z_pred_rounded = z_quantised + z_pred_rounded_diff
             
             xy_inter = self._decoder(z_pred_rounded / self.num_levels)
             return xy_inter.detach()
@@ -216,8 +216,8 @@ class HopVAE(nn.Module):
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
         z_rounded = torch.round(z_quantised * self.num_levels)
-        z_rounded_diff = z_rounded - z
-        z_rounded = z + z_rounded_diff
+        z_rounded_diff = z_rounded - z_quantised
+        z_rounded = z_quantised + z_rounded_diff
 
         if self.fit_prior:
             #start by assuming that num_categories and num_levels are the same 
@@ -235,8 +235,8 @@ class HopVAE(nn.Module):
             z_pred_quantised = z_pred_quantised.permute(0, 3, 1, 2).contiguous()
 
             z_pred_rounded = torch.round(z_pred_quantised * self.num_levels)
-            z_pred_rounded_diff = z_pred_rounded - z
-            z_pred_rounded = z + z_pred_rounded_diff
+            z_pred_rounded_diff = z_pred_rounded - z_pred_quantised
+            z_pred_rounded = z_pred_quantised + z_pred_rounded_diff
             
             x_recon = self._decoder(z_pred_rounded / self.num_levels)
             return x_recon.detach(), z_prediction_error
