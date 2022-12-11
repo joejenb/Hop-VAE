@@ -192,7 +192,9 @@ def main():
             scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
 
         train(model, train_loader, optimiser, scheduler)
-        test(model, test_loader)
+
+        if not epoch % 10:
+            test(model, test_loader)
 
         if not epoch % 5:
             torch.save(model.state_dict(), output_location)
