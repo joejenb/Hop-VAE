@@ -20,4 +20,4 @@ config["num_channels"] = 3
 config["data_set"] = "FFHQ"
 config["representation_dim"] = 9
 config["num_levels"] = 512
-config["prior_start"] = 0
+config["prior_start"] = 50
