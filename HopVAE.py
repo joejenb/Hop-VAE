@@ -227,7 +227,7 @@ class HopVAE(nn.Module):
             z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
             z_prediction_error = z_prediction_error.mean()            
 
-            z_pred = z_pred.detach().permute(0, 2, 3, 1).contiguous() / self.num_levels
+            '''z_pred = z_pred.detach().permute(0, 2, 3, 1).contiguous() / self.num_levels
             z_pred = z_pred.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
             z_pred_quantised = self.hopfield(z_pred)
@@ -237,8 +237,9 @@ class HopVAE(nn.Module):
             z_pred_rounded = torch.round(z_pred_quantised * self.num_levels)
             z_pred_rounded_diff = z_pred_rounded - z_pred_quantised
             z_pred_rounded = z_pred_quantised + z_pred_rounded_diff
+            '''
             
-            x_recon = self.decoder(z_pred_rounded / self.num_levels)
+            x_recon = self.decoder(z_rounded / self.num_levels)
             return x_recon.detach(), z_prediction_error
 
         x_recon = self.decoder(z_rounded / self.num_levels)
