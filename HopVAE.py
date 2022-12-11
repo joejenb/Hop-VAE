@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import numpy as np
+
 from hflayers import HopfieldLayer
 from Residual import ResidualStack
 
@@ -101,6 +103,7 @@ class HopVAE(nn.Module):
 
         self.embedding_dim = config.embedding_dim
         self.representation_dim = config.representation_dim
+        self.num_levels = config.num_levels
 
         self.encoder = Encoder(config.num_channels, config.num_hiddens,
                                 config.num_residual_layers, 
@@ -132,11 +135,19 @@ class HopVAE(nn.Module):
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        z_quantised = self.hopfield(z)
-        z_quantised = z_quantised.view(1, self.representation_dim, self.representation_dim, self.embedding_dim)
+        z_rounded = torch.round(z * self.num_levels)
+        z_rounded_diff = z_rounded - z
+        z_rounded = (z + z_rounded_diff) / self.num_levels
+
+        z_quantised = self.hopfield(z_rounded)
+        z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
-        x_sample = self.decoder(z_quantised)
+        z_rounded = torch.round(z_quantised * self.num_levels)
+        z_rounded_diff = z_rounded - z
+        z_rounded = z + z_rounded_diff
+        
+        x_sample = self._decoder(z_rounded / self.num_levels)
 
         return x_sample
 
@@ -153,50 +164,83 @@ class HopVAE(nn.Module):
             z = z.permute(0, 2, 3, 1).contiguous()
             z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-            z_quantised = self.hopfield(z)
+            z_rounded = torch.round(z * self.num_levels)
+            z_rounded_diff = z_rounded - z
+            z_rounded = (z + z_rounded_diff) / self.num_levels
+
+            z_quantised = self.hopfield(z_rounded)
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
-            z_denoised = self.prior.denoise(z_quantised).type(torch.int64)
+            z_rounded = torch.round(z_quantised * self.num_levels)
+            z_rounded_diff = z_rounded - z
+            z_rounded = z + z_rounded_diff
 
-            z_denoised = z_denoised.permute(0, 2, 3, 1).contiguous()
-            z_denoised = z_denoised.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+            #start by assuming that num_categories and num_levels are the same 
+            z_rounded = self.prior.denoise(z_rounded)
 
-            z_quantised = self.hopfield(z_denoised)
+            z_rounded = z_rounded.detach().permute(0, 2, 3, 1).contiguous() / self.num_levels
+            z_rounded = z_rounded.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+
+            z_quantised = self.hopfield(z_rounded)
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
-            xy_inter = self.decoder(z_quantised)
+            z_pred_rounded = torch.round(z_quantised * self.num_levels)
+            z_pred_rounded_diff = z_rounded - z
+            z_pred_rounded = z + z_rounded_diff
+            
+            xy_inter = self._decoder(z_pred_rounded / self.num_levels)
+            return xy_inter.detach()
 
-            return xy_inter
         return x
 
     def forward(self, x):
+        '''Need to add in quantisation of vector entries -> say have 512 levels -> multiply by 512
+        -> round -> subtract to get difference -> return this value for addition to loss (Don't do this to start with) -> add difference to 
+        get rounded value -> Feed through PixelCNN to get classes and loss -> renormalise'''
+        '''So hopfield -> project and round -> project back,  for normal case
+            hopfield -> project and round -> pixelcnn prior -> project back -> hopfield -> project and round -> project back, for sampling case''' 
         z = self.encoder(x)
-        z = self.pre_vq_conv(z)
+        z = F.relu(self.pre_vq_conv(z))
 
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        z_quantised = self.hopfield(z)
+        z_rounded = torch.round(z * self.num_levels)
+        z_rounded_diff = z_rounded - z
+        z_rounded = (z + z_rounded_diff) / self.num_levels
+
+        z_quantised = self.hopfield(z_rounded)
         z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
+        z_rounded = torch.round(z_quantised * self.num_levels)
+        z_rounded_diff = z_rounded - z
+        z_rounded = z + z_rounded_diff
+
         if self.fit_prior:
-            #May need to make indices type long
-            z_pred = self.prior(z_quantised)
+            #start by assuming that num_categories and num_levels are the same 
+            z_pred = self.prior(z_rounded)
 
-            z_pred = z_pred.permute(0, 2, 3, 1).contiguous()
-            z_pred = z_pred.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
-            z_pred_quantised = self.hopfield(z_pred)
-
-            z_cross_entropy = F.cross_entropy(z_pred_quantised, z_quantised, reduction='none')
+            z_cross_entropy = F.cross_entropy(z_pred, z_rounded.long().detach(), reduction='none')
             z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
             z_prediction_error = z_prediction_error.mean()            
+
+            z_pred = z_pred.detach().permute(0, 2, 3, 1).contiguous() / self.num_levels
+            z_pred = z_pred.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+
+            z_pred_quantised = self.hopfield(z_pred)
+            z_pred_quantised = z_pred_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+            z_pred_quantised = z_pred_quantised.permute(0, 3, 1, 2).contiguous()
+
+            z_pred_rounded = torch.round(z_pred_quantised * self.num_levels)
+            z_pred_rounded_diff = z_pred_rounded - z
+            z_pred_rounded = z + z_pred_rounded_diff
             
-            x_recon = self._decoder(z_pred_quantised)
+            x_recon = self._decoder(z_pred_rounded / self.num_levels)
             return x_recon.detach(), z_prediction_error
 
-        x_recon = self.decoder(z_quantised)
+        x_recon = self.decoder(z_rounded / self.num_levels)
 
         return x_recon, 0
