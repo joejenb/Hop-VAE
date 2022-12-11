@@ -187,7 +187,7 @@ class HopVAE(nn.Module):
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             z_pred_rounded = torch.round(z_quantised * self.num_levels)
-            z_pred_rounded_diff = z_rounded - z_quantised
+            z_pred_rounded_diff = z_pred_rounded - z_quantised
             z_pred_rounded = z_quantised + z_pred_rounded_diff
             
             xy_inter = self._decoder(z_pred_rounded / self.num_levels)
