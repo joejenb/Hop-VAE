@@ -96,12 +96,12 @@ def train(model, train_loader, optimiser, scheduler):
         X_recon, Z_prediction_error = model(X)
 
         recon_error = F.mse_loss(X_recon, X) / config.data_variance
-        loss = recon_error
+        loss = recon_error + Z_prediction_error
 
         loss.backward()
         optimiser.step()
         
-        train_res_recon_error += recon_error.item()
+        train_res_recon_error += recon_error.item() + Z_prediction_error
 
     scheduler.step()
     wandb.log({
