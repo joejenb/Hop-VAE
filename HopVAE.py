@@ -147,7 +147,7 @@ class HopVAE(nn.Module):
         z_rounded_diff = z_rounded - z_quantised
         z_rounded = z_quantised + z_rounded_diff
         
-        x_sample = self._decoder(z_rounded / self.num_levels)
+        x_sample = self.decoder(z_rounded / self.num_levels)
 
         return x_sample
 
@@ -190,7 +190,7 @@ class HopVAE(nn.Module):
             z_pred_rounded_diff = z_pred_rounded - z_quantised
             z_pred_rounded = z_quantised + z_pred_rounded_diff
             
-            xy_inter = self._decoder(z_pred_rounded / self.num_levels)
+            xy_inter = self.decoder(z_pred_rounded / self.num_levels)
             return xy_inter.detach()
 
         return x
@@ -238,7 +238,7 @@ class HopVAE(nn.Module):
             z_pred_rounded_diff = z_pred_rounded - z_pred_quantised
             z_pred_rounded = z_pred_quantised + z_pred_rounded_diff
             
-            x_recon = self._decoder(z_pred_rounded / self.num_levels)
+            x_recon = self.decoder(z_pred_rounded / self.num_levels)
             return x_recon.detach(), z_prediction_error
 
         x_recon = self.decoder(z_rounded / self.num_levels)
