@@ -17,7 +17,7 @@ import wandb
 from HopVAE import HopVAE
 
 from configs.ffhq_32_config import config as hop_config
-from PixelCNN.configs.ffhq_8_config import config as prior_config
+from PixelCNN.configs.ffhq_9_config import config as prior_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", type=str)
