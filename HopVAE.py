@@ -252,4 +252,4 @@ class HopVAE(nn.Module):
 
         x_recon = self.decoder(z_rounded / self.num_levels)
 
-        return x_recon, torch.Tensor(0, requires_grad=True).to(self.device)
+        return x_recon, torch.zeros(1, requires_grad=True).to(self.device)
