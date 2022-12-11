@@ -19,4 +19,5 @@ config["num_embeddings"] = 512
 config["num_channels"] = 3
 config["data_set"] = "FFHQ"
 config["representation_dim"] = 17
+config["num_levels"] = 512
 config["prior_start"] = 50
