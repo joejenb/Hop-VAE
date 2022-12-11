@@ -221,7 +221,7 @@ class HopVAE(nn.Module):
 
         if self.fit_prior:
             #start by assuming that num_categories and num_levels are the same 
-            z_pred = self.prior(z_rounded)
+            z_pred = self.prior(z_rounded.type(torch.int64))
 
             z_cross_entropy = F.cross_entropy(z_pred, z_rounded.long().detach(), reduction='none')
             z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
