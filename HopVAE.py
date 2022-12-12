@@ -220,7 +220,7 @@ class HopVAE(nn.Module):
         z_rounded = torch.round(z)
         #z_rounded_diff = z_rounded - z
         #z_rounded = (z + z_rounded_diff) / self.num_levels
-        z_rounded = torch.clamp(z, min=z_rounded, max=z_rounded)
+        z_rounded = torch.clamp(z, min=z_rounded, max=z_rounded) / self.num_levels
 
         z_quantised = self.hopfield(z_rounded)
         #z_quantised = self.hopfield(z)
