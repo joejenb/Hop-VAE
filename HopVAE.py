@@ -149,11 +149,11 @@ class HopVAE(nn.Module):
         z_sample_indices = z_sample_indices.permute(0, 2, 3, 1).contiguous()
         z_sample_indices = z_sample_indices.view(-1, 1)
 
-        z_sample = torch.zeros(z_sample_indices.shape[0], self._num_embeddings, device=self.device)
+        z_sample = torch.zeros(z_sample_indices.shape[0], self.num_embeddings, device=self.device)
         z_sample.scatter_(1, z_sample_indices, 1)
         
         # Quantize and unflatten
-        z_quantised = torch.matmul(z_sample, self._vq_vae._embedding.weight)
+        z_quantised = torch.matmul(z_sample, self.vec_to_index._embedding.weight)
 
         z_quantised = z_quantised.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
@@ -191,11 +191,11 @@ class HopVAE(nn.Module):
             z_sample_indices = z_sample_indices.permute(0, 2, 3, 1).contiguous()
             z_sample_indices = z_sample_indices.view(-1, 1)
 
-            z_sample = torch.zeros(z_sample_indices.shape[0], self._num_embeddings, device=self.device)
+            z_sample = torch.zeros(z_sample_indices.shape[0], self.num_embeddings, device=self.device)
             z_sample.scatter_(1, z_sample_indices, 1)
             
             # Quantize and unflatten
-            z_denoised = torch.matmul(z_sample, self._vq_vae._embedding.weight)
+            z_denoised = torch.matmul(z_sample, self.vec_to_index._embedding.weight)
 
             z_denoised = z_denoised.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
