@@ -198,7 +198,7 @@ class HopVAE(nn.Module):
             # Quantize and unflatten
             z_denoised = torch.matmul(z_sample, self.vec_to_index._embedding.weight)
 
-            z_denoised = z_denoised.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
+            z_denoised = z_denoised.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
             z_quantised = self.hopfield(z_denoised)
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
