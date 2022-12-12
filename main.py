@@ -194,7 +194,7 @@ def main():
 
         train(model, train_loader, optimiser, scheduler)
 
-        if not epoch % 5 and epoch:
+        if not epoch % 5:
             test(model, test_loader)
 
         if not epoch % 5:
