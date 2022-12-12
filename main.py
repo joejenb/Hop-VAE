@@ -161,7 +161,7 @@ def main():
     output_location = f'outputs/{config.data_set}-{config.image_size}.ckpt'
 
     model = HopVAE(hop_config, prior_config, device).to(device)
-    if os.path.exists(checkpoint_location):
+    '''if os.path.exists(checkpoint_location):
         #model.load_state_dict(torch.load(checkpoint_location, map_location=device))
         pre_state_dict = torch.load(checkpoint_location, map_location=device)
         to_delete = []
@@ -177,6 +177,7 @@ def main():
                 pre_state_dict[key] = model.state_dict()[key]
         model.load_state_dict(pre_state_dict)
         #model.load_state_dict(torch.load(checkpoint_location, map_location=device))
+    '''
 
     optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
     scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=config.gamma)
