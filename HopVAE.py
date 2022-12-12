@@ -216,20 +216,21 @@ class HopVAE(nn.Module):
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        z = z * self.num_levels
+        '''z = z * self.num_levels
         z_rounded = torch.round(z)
         z_rounded_diff = z_rounded - z
-        z_rounded = (z + z_rounded_diff) / self.num_levels
+        z_rounded = (z + z_rounded_diff) / self.num_levels'''
 
-        z_quantised = self.hopfield(z_rounded)
+        #z_quantised = self.hopfield(z_rounded)
+        z_quantised = self.hopfield(z)
         z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
         z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
-        z_quantised = z_quantised * self.num_levels
+        '''z_quantised = z_quantised * self.num_levels
         z_rounded = torch.round(z_quantised)
         z_rounded_diff = z_rounded - z_quantised
-        z_rounded = z_quantised + z_rounded_diff
+        z_rounded = z_quantised + z_rounded_diff'''
 
         if self.fit_prior:
             #start by assuming that num_categories and num_levels are the same 
@@ -240,21 +241,10 @@ class HopVAE(nn.Module):
             z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
             z_prediction_error = z_prediction_error.mean()            
 
-            '''z_pred = z_pred.detach().permute(0, 2, 3, 1).contiguous() / self.num_levels
-            z_pred = z_pred.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
-
-            z_pred_quantised = self.hopfield(z_pred)
-            z_pred_quantised = z_pred_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
-            z_pred_quantised = z_pred_quantised.permute(0, 3, 1, 2).contiguous()
-
-            z_pred_rounded = torch.round(z_pred_quantised * self.num_levels)
-            z_pred_rounded_diff = z_pred_rounded - z_pred_quantised
-            z_pred_rounded = z_pred_quantised + z_pred_rounded_diff
-            '''
-            
             x_recon = self.decoder(z_rounded / self.num_levels)
             return x_recon.detach(), z_prediction_error
 
-        x_recon = self.decoder(z_rounded / self.num_levels)
+        #x_recon = self.decoder(z_rounded / self.num_levels)
+        x_recon = self.decoder(z_quantised)
 
         return x_recon, torch.zeros(1, requires_grad=True).to(self.device)
