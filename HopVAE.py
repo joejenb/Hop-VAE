@@ -9,6 +9,11 @@ from Residual import ResidualStack
 
 from PixelCNN.PixelCNN import PixelCNN
 
+def straight_through_round(X):
+    forward_value = torch.round(X)
+    out = X.clone()
+    out.data = forward_value.data
+    return out
 class Encoder(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
         super(Encoder, self).__init__()
@@ -217,10 +222,11 @@ class HopVAE(nn.Module):
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
         z = z * self.num_levels
-        z_rounded = torch.round(z)
+        #z_rounded = torch.round(z)
         #z_rounded_diff = z_rounded - z
         #z_rounded = (z + z_rounded_diff) / self.num_levels
-        z_rounded = torch.clamp(z, min=z_rounded, max=z_rounded) / self.num_levels
+        #z_rounded = torch.clamp(z, min=z_rounded, max=z_rounded) / self.num_levels
+        z_rounded = straight_through_round(z) / self.num_levels
 
         z_quantised = self.hopfield(z_rounded)
         #z_quantised = self.hopfield(z)
