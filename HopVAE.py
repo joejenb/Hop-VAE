@@ -185,7 +185,6 @@ class HopVAE(nn.Module):
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             _, indices = self.vec_to_index(z_quantised.detach())
-            z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
             #start by assuming that num_categories and num_levels are the same 
             z_sample_indices = self.prior.denoise(indices)
@@ -237,6 +236,19 @@ class HopVAE(nn.Module):
             z_cross_entropy = F.cross_entropy(z_pred, indices.long().detach(), reduction='none')
             z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
             z_prediction_error = z_prediction_error.mean()            
+
+            indices = indices.permute(0, 2, 3, 1).contiguous()
+            indices = indices.view(-1, 1)
+
+            z_quantised = torch.zeros(indices.shape[0], self.num_embeddings, device=self.device)
+            z_quantised.scatter_(1, indices, 1)
+            
+            # Quantize and unflatten
+            z_quantised = torch.matmul(z_quantised, self.vec_to_index._embedding.weight)
+
+            z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+            z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
+            z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
             x_recon = self.decoder(z_quantised)
             return x_recon.detach(), z_prediction_error
