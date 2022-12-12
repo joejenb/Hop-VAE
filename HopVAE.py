@@ -144,20 +144,15 @@ class HopVAE(nn.Module):
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        z = z * self.num_levels
-        z_rounded = torch.round(z)
-        z_rounded_diff = z_rounded - z
-        z_rounded = (z + z_rounded_diff) / self.num_levels
+        z_rounded = z / self.num_levels
 
         z_quantised = F.relu(self.hopfield(z_rounded))
         z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
         z_quantised = z_quantised * self.num_levels
-        z_rounded = torch.round(z_quantised)
-        z_rounded_diff = z_rounded - z_quantised
-        z_rounded = z_quantised + z_rounded_diff
-        
+        z_rounded = straight_through_round(z_quantised)
+
         x_sample = self.decoder(z_rounded / self.num_levels)
 
         return x_sample
@@ -176,35 +171,29 @@ class HopVAE(nn.Module):
             z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
             z = z * self.num_levels
-            z_rounded = torch.round(z)
-            z_rounded_diff = z_rounded - z
-            z_rounded = (z + z_rounded_diff) / self.num_levels
+            z_rounded = straight_through_round(z) / self.num_levels
 
             z_quantised = F.relu(self.hopfield(z_rounded))
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             z_quantised = z_quantised * self.num_levels
-            z_rounded = torch.round(z_quantised)
-            z_rounded_diff = z_rounded - z_quantised
-            z_rounded = z_quantised + z_rounded_diff
+            z_rounded = straight_through_round(z_quantised)
 
             #start by assuming that num_categories and num_levels are the same 
-            z_rounded = self.prior.denoise(z_rounded)
+            z_denoised = self.prior.denoise(z_rounded) / self.num_levels
 
-            z_rounded = z_rounded.detach().permute(0, 2, 3, 1).contiguous() / self.num_levels
-            z_rounded = z_rounded.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+            z_denoised = z_denoised.detach().permute(0, 2, 3, 1).contiguous()
+            z_denoised = z_denoised.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-            z_quantised = F.relu(self.hopfield(z_rounded))
+            z_quantised = F.relu(self.hopfield(z_denoised))
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
 
             z_quantised = z_quantised * self.num_levels
-            z_pred_rounded = torch.round(z_quantised)
-            z_pred_rounded_diff = z_pred_rounded - z_quantised
-            z_pred_rounded = z_quantised + z_pred_rounded_diff
+            z_rounded = straight_through_round(z_quantised)
             
-            xy_inter = self.decoder(z_pred_rounded / self.num_levels)
+            xy_inter = self.decoder(z_rounded / self.num_levels)
             return xy_inter.detach()
 
         return x
@@ -222,22 +211,14 @@ class HopVAE(nn.Module):
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
         z = z * self.num_levels
-        #z_rounded = torch.round(z)
-        #z_rounded_diff = z_rounded - z
-        #z_rounded = (z + z_rounded_diff) / self.num_levels
-        #z_rounded = torch.clamp(z, min=z_rounded, max=z_rounded) / self.num_levels
         z_rounded = straight_through_round(z) / self.num_levels
 
         z_quantised = self.hopfield(z_rounded)
-        #z_quantised = self.hopfield(z)
         z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
         z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
         z_quantised = z_quantised * self.num_levels
-        #z_rounded = torch.round(z_quantised)
-        #z_rounded_diff = z_rounded - z_quantised
-        #z_rounded = z_quantised + z_rounded_diff
         z_rounded = straight_through_round(z_quantised)
 
         if self.fit_prior:
@@ -253,6 +234,5 @@ class HopVAE(nn.Module):
             return x_recon.detach(), z_prediction_error
 
         x_recon = self.decoder(z_rounded / self.num_levels)
-        #x_recon = self.decoder(z_quantised)
 
         return x_recon, torch.zeros(1, requires_grad=True).to(self.device)
