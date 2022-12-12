@@ -216,10 +216,10 @@ class HopVAE(nn.Module):
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        '''z = z * self.num_levels
+        z = z * self.num_levels
         z_rounded = torch.round(z)
         z_rounded_diff = z_rounded - z
-        z_rounded = (z + z_rounded_diff) / self.num_levels'''
+        z_rounded = (z + z_rounded_diff) / self.num_levels
 
         #z_quantised = self.hopfield(z_rounded)
         z_quantised = self.hopfield(z)
