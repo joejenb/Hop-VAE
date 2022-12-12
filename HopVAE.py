@@ -146,9 +146,10 @@ class HopVAE(nn.Module):
 
         z_rounded = z / self.num_levels
 
-        z_quantised = F.relu(self.hopfield(z_rounded))
+        z_quantised = self.hopfield(z_rounded)
         z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
+        z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
         z_quantised = z_quantised * self.num_levels
         z_rounded = straight_through_round(z_quantised)
@@ -173,9 +174,10 @@ class HopVAE(nn.Module):
             z = z * self.num_levels
             z_rounded = straight_through_round(z) / self.num_levels
 
-            z_quantised = F.relu(self.hopfield(z_rounded))
+            z_quantised = self.hopfield(z_rounded)
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
+            z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
             z_quantised = z_quantised * self.num_levels
             z_rounded = straight_through_round(z_quantised)
@@ -186,9 +188,10 @@ class HopVAE(nn.Module):
             z_denoised = z_denoised.detach().permute(0, 2, 3, 1).contiguous()
             z_denoised = z_denoised.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-            z_quantised = F.relu(self.hopfield(z_denoised))
+            z_quantised = self.hopfield(z_denoised)
             z_quantised = z_quantised.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_quantised = z_quantised.permute(0, 3, 1, 2).contiguous()
+            z_quantised = F.relu(self.post_vq_conv(z_quantised))
 
             z_quantised = z_quantised * self.num_levels
             z_rounded = straight_through_round(z_quantised)
