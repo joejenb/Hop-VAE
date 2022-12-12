@@ -252,7 +252,7 @@ class HopVAE(nn.Module):
             x_recon = self.decoder(z_rounded / self.num_levels)
             return x_recon.detach(), z_prediction_error
 
-        #x_recon = self.decoder(z_rounded / self.num_levels)
-        x_recon = self.decoder(z_quantised)
+        x_recon = self.decoder(z_rounded / self.num_levels)
+        #x_recon = self.decoder(z_quantised)
 
         return x_recon, torch.zeros(1, requires_grad=True).to(self.device)
