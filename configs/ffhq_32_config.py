@@ -21,3 +21,5 @@ config["data_set"] = "FFHQ"
 config["representation_dim"] = 9
 config["num_levels"] = 512
 config["prior_start"] = 5
+config["commitment_cost"] = 0.25
+config["decay"] = 0.99
