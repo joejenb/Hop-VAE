@@ -238,7 +238,7 @@ class HopVAE(nn.Module):
         #z_rounded = torch.round(z_quantised)
         #z_rounded_diff = z_rounded - z_quantised
         #z_rounded = z_quantised + z_rounded_diff
-        z_rounded = straight_through_round(z_quantised) / self.num_levels
+        z_rounded = straight_through_round(z_quantised)
 
         if self.fit_prior:
             #start by assuming that num_categories and num_levels are the same 
