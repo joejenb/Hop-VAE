@@ -132,20 +132,20 @@ def test(model, test_loader):
             
             test_res_recon_error += recon_error.item()
 
-        #ZY_inter = model.interpolate(Z, Y)
+        ZY_inter = model.interpolate(Z, Y)
 
         example_images = [wandb.Image(img) for img in X]
         example_reconstructions = [wandb.Image(recon_img) for recon_img in X_recon]
-        #example_samples = [wandb.Image(model.sample()) for _ in X_recon]
+        example_samples = [wandb.Image(model.sample()) for _ in X_recon]
         example_Z = [wandb.Image(recon_img) for recon_img in Z]
         example_Y = [wandb.Image(recon_img) for recon_img in Y]
-        #example_interpolations = [wandb.Image(inter_img) for inter_img in ZY_inter]
+        example_interpolations = [wandb.Image(inter_img) for inter_img in ZY_inter]
 
     wandb.log({
         "Test Inputs": example_images,
         "Test Reconstruction": example_reconstructions,
-        #"Test Interpolations": example_interpolations,
-        #"Test Samples": example_samples,
+        "Test Interpolations": example_interpolations,
+        "Test Samples": example_samples,
         "Test Z": example_Z,
         "Test Y": example_Y,
         "Test Reconstruction Error": test_res_recon_error / len(test_loader.dataset)
@@ -194,7 +194,7 @@ def main():
 
         train(model, train_loader, optimiser, scheduler)
 
-        if not epoch % 5:
+        if not epoch % 5 and not epoch:
             test(model, test_loader)
 
         if not epoch % 5:
