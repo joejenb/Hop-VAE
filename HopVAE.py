@@ -192,7 +192,7 @@ class HopVAE(nn.Module):
             z_embeddings = self.hopfield(z)
             z_indices = self.embedding_to_index(z_embeddings)
 
-            z_indices = F.relu(self.post_vq_conv(z_indices))
+            z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
             z_indices = 1 - F.relu(1 - z_indices)
             z_indices_quantised = straight_through_round(z_indices * self.num_levels)
 
@@ -225,7 +225,7 @@ class HopVAE(nn.Module):
         z_embeddings = self.hopfield(z)
 
         z_indices = self.embedding_to_index(z_embeddings)
-        z_indices = F.relu(self.post_vq_conv(z_indices))
+        z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
         z_indices = 1 - F.relu(1 - z_indices)
 
         z_indices_quantised = straight_through_round(z_indices * self.num_levels)
