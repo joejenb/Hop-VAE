@@ -171,7 +171,6 @@ class HopVAE(nn.Module):
 
         z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
-        z_embeddings = F.relu(self.post_vq_conv(z_embeddings))
 
         x_sample = self.decoder(z_embeddings)
 
@@ -209,7 +208,6 @@ class HopVAE(nn.Module):
 
             z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
             z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
-            z_embeddings = F.relu(self.post_vq_conv(z_embeddings))
 
             xy_inter = self.decoder(z_embeddings)
 
