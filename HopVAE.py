@@ -110,6 +110,7 @@ class HopVAE(nn.Module):
 
         self.num_embeddings = config.num_embeddings
         self.embedding_dim = config.embedding_dim
+        self.index_dim = config.index_dim
         self.representation_dim = config.representation_dim
         self.num_levels = config.num_levels
 
