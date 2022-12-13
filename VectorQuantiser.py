@@ -40,6 +40,8 @@ class VectorQuantiserEMA(nn.Module):
         
         # Quantize and unflatten
         quantized = torch.matmul(encodings, self._embedding.weight).view(input_shape)
+
+        print(encoding_indices.size(), quantized.size())
         encoding_indices = encoding_indices.view(input_shape[0], input_shape[1], input_shape[2], 1)
         
         # Use EMA to update the embedding vectors
