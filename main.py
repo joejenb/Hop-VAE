@@ -196,7 +196,7 @@ def main():
             optimiser = optim.Adam(model.prior.parameters(), lr=prior_config.learning_rate)
             scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
 
-        train(model, train_loader, optimiser, scheduler)
+        #train(model, train_loader, optimiser, scheduler)
 
         if not epoch % 5:
             test(model, test_loader)
