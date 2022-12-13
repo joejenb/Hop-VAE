@@ -8,7 +8,6 @@ from hflayers import HopfieldLayer
 from Residual import ResidualStack
 
 from PixelCNN.PixelCNN import PixelCNN
-from VectorQuantiser import VectorQuantiserEMA
 
 
 def straight_through_round(X):
