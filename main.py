@@ -35,6 +35,7 @@ class MakeConfig:
 config = wandb.config          # Initialize config
 hop_config = MakeConfig(hop_config)
 prior_config = MakeConfig(prior_config)
+prior_config.num_channels = hop_config.index_dim
 
 def get_data_loaders():
     if config.data_set == "MNIST":
