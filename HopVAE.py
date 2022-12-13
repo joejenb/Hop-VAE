@@ -163,6 +163,9 @@ class HopVAE(nn.Module):
     def sample(self):
         z_indices = self.prior.sample().type(torch.int64) / self.num_levels
 
+        z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
+        z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
+
         z_embeddings = self.index_to_embedding(z_indices)
 
         z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
@@ -190,7 +193,13 @@ class HopVAE(nn.Module):
             z_indices = self.embedding_to_index(z_embeddings)
             z_indices_quantised = straight_through_round(z_indices * self.num_levels)
 
+            z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
+            z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
+
             z_indices = self.prior.denoise(z_indices_quantised) / self.num_levels
+
+            z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
+            z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
 
             z_embeddings = self.index_to_embedding(z_indices)
 
@@ -226,6 +235,9 @@ class HopVAE(nn.Module):
 
         if self.fit_prior:
             #start by assuming that num_categories and num_levels are the same 
+            z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
+            z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
+
             z_pred = self.prior(z_indices_quantised.detach())
 
             z_cross_entropy = F.cross_entropy(z_pred, z_indices_quantised.long().detach(), reduction='none')
