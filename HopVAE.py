@@ -147,8 +147,8 @@ class HopVAE(nn.Module):
                         )
 
 
-        self.post_vq_conv = nn.Conv2d(in_channels=config.embedding_dim, 
-                                      out_channels=config.embedding_dim,
+        self.post_vq_conv = nn.Conv2d(in_channels=config.index_dim, 
+                                      out_channels=config.index_dim,
                                       kernel_size=1, 
                                       stride=1)
         
