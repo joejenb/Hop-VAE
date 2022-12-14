@@ -19,6 +19,6 @@ config["num_embeddings"] = 512
 config["num_channels"] = 1
 config["data_set"] = "MNIST"
 config["representation_dim"] = 8
-config["num_levels"] = 512
+config["num_levels"] = 1024
 config["prior_start"] = 10
 config["index_dim"] = 3
