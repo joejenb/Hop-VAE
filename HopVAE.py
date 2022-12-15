@@ -243,6 +243,7 @@ class HopVAE(nn.Module):
         #z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
         #z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
         z_embeddings_recon = self.index_to_embedding(z_indices)
+        embedding_recon_loss = F.mse_loss(z_embeddings_recon, z_embeddings)
 
         z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
@@ -264,4 +265,4 @@ class HopVAE(nn.Module):
 
         x_recon = self.decoder(z_embeddings)
 
-        return x_recon, F.mse_loss(z_embeddings_recon, z_embeddings)#torch.zeros(1, requires_grad=True).to(self.device)
+        return x_recon, embedding_recon_loss#torch.zeros(1, requires_grad=True).to(self.device)
