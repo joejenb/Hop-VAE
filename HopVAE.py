@@ -235,7 +235,7 @@ class HopVAE(nn.Module):
 
         #z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
         #z_indices = 1 - F.relu(1 - z_indices)
-        z_indices = F.sigmoid(z_indices)#self.post_vq_conv(z_indices))
+        z_indices = torch.sigmoid(z_indices)#self.post_vq_conv(z_indices))
 
         z_indices_quantised = straight_through_round(z_indices * (self.num_levels - 1))
         z_indices = z_indices_quantised / (self.num_levels - 1)
