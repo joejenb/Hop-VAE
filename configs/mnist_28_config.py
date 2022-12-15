@@ -20,5 +20,5 @@ config["num_channels"] = 1
 config["data_set"] = "MNIST"
 config["representation_dim"] = 8
 config["num_levels"] = 512
-config["prior_start"] = 30
+config["prior_start"] = -1
 config["index_dim"] = 3
