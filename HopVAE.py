@@ -236,8 +236,9 @@ class HopVAE(nn.Module):
         z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
         z_indices = 1 - F.relu(1 - z_indices)
         #z_indices = F.sigmoid(self.post_vq_conv(z_indices))
-        z_indices_quantised = straight_through_round(z_indices * (self.num_levels - 1))
-        z_indices = z_indices_quantised / (self.num_levels - 1)
+
+        #z_indices_quantised = straight_through_round(z_indices * (self.num_levels - 1))
+        #z_indices = z_indices_quantised / (self.num_levels - 1)
 
         #z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
         z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
