@@ -168,7 +168,7 @@ def main():
     model = HopVAE(hop_config, prior_config, device).to(device)
     if os.path.exists(checkpoint_location):
         #model.load_state_dict(torch.load(checkpoint_location, map_location=device))
-        pre_state_dict = torch.load(checkpoint_location, map_location=device)
+        '''pre_state_dict = torch.load(checkpoint_location, map_location=device)
         to_delete = []
         for key in pre_state_dict.keys():
             if key not in model.state_dict().keys() or key[:5] == "post_":
@@ -180,8 +180,8 @@ def main():
         for key in model.state_dict().keys():
             if key not in pre_state_dict.keys():
                 pre_state_dict[key] = model.state_dict()[key]
-        model.load_state_dict(pre_state_dict)
-        #model.load_state_dict(torch.load(checkpoint_location, map_location=device))
+        model.load_state_dict(pre_state_dict)'''
+        model.load_state_dict(torch.load(checkpoint_location, map_location=device))
 
     optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
     scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=config.gamma)

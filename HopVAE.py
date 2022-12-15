@@ -264,4 +264,4 @@ class HopVAE(nn.Module):
 
         x_recon = self.decoder(z_embeddings)
 
-        return x_recon, torch.mse(z_embeddings_recon, z_embeddings)#torch.zeros(1, requires_grad=True).to(self.device)
+        return x_recon, F.mse_loss(z_embeddings_recon, z_embeddings)#torch.zeros(1, requires_grad=True).to(self.device)
