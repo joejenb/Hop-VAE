@@ -221,7 +221,7 @@ class HopVAE(nn.Module):
 
     def forward(self, x):
         z = self.encoder(x)
-        z = F.relu(self.pre_vq_conv(z))
+        z = self.pre_vq_conv(z)
 
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
@@ -233,7 +233,7 @@ class HopVAE(nn.Module):
         #z_indices = z_indices.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
         #z_indices = z_indices.permute(0, 3, 1, 2).contiguous()
 
-        z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
+        #z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
         #z_indices = 1 - F.relu(1 - z_indices)
         #z_indices = F.sigmoid(self.post_vq_conv(z_indices))
 
