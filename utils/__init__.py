@@ -1,6 +1,7 @@
 import sys
 import os
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import random_split
 
@@ -14,7 +15,23 @@ class MakeConfig:
     def __init__(self, config):
         self.__dict__ = config
 
+class Normal(nn.Module):
+    def __init__(self, config, device):
+        self.device = device
+        self.config = config
 
+    def sample(self):
+        return torch.randn(1, self.config.embedding_dim, self.config.representation_dim, self.config.representation_dim).to(self.device)
+    
+    def interpolate(self, X, Y):
+        return (X + Y) / 2
+    
+    def reconstruct(self, X):
+        return X
+
+    def forward(self, X):
+        return X
+    
 def straight_through_round(X):
     forward_value = torch.round(X)
     out = X.clone()
@@ -37,7 +54,7 @@ def get_prior(config, device):
         from priors.PixelCNN.PixelCNN import PixelCNN as prior
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
     elif config.prior == "None":
-        prior = lambda x: x
+        prior = Normal
         prior_config = dict()
     
     prior_config = MakeConfig(prior_config)
