@@ -17,9 +17,9 @@ class MakeConfig:
 
 class Normal(nn.Module):
     def __init__(self, config, device):
+        super(Normal, self).__init__()
         self.device = device
         self.config = config
-        self.dummy_module = nn.Linear(1, 1)
 
     def sample(self):
         return torch.randn(1, self.config.embedding_dim, self.config.representation_dim, self.config.representation_dim).to(self.device)
