@@ -23,8 +23,8 @@ def straight_through_round(X):
 
 def get_prior(config, device):
     if config.prior == "PixelCNN":
-        from Priors.PixelCNN.PixelCNN import PixelCNN as prior
-        from Priors.PixelCNN.configs.mnist_8_config import config as prior_config
+        from priors.PixelCNN.PixelCNN import PixelCNN as prior
+        from priors.PixelCNN.configs.mnist_8_config import config as prior_config
     elif config.prior == "None":
         prior = lambda x: x
         prior_config = dict()
