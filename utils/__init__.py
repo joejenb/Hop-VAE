@@ -26,6 +26,7 @@ def get_prior_optimiser(config, prior):
     if config.prior == "PixelCNN":
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
 
+    prior_config = MakeConfig(prior_config)
     optimiser = optim.Adam(prior.parameters(), lr=prior_config.learning_rate)
     scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
 
