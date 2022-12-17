@@ -11,9 +11,12 @@ import wandb
 
 from HopVAE import HopVAE
 
+from utils import get_data_loaders
+
 from configs.mnist_28_config import config
 
-from utils import get_data_loaders
+wandb.init(project="Hop-VAE", config=config)
+config = wandb.config
 
 def train(model, train_loader, optimiser, scheduler):
 
@@ -84,10 +87,6 @@ def test(model, test_loader):
 
 
 def main():
-
-    wandb.init(project="Hop-VAE", config=config)
-    config = wandb.config
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=str)
 
