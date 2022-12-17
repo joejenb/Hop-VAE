@@ -74,7 +74,7 @@ def get_prior(config, device):
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
     elif config.prior == "None":
         prior = Normal
-        prior_config = config
+        prior_config = config.__dict__
     
     prior_config = MakeConfig(prior_config)
     prior_config.num_channels = config.index_dim
