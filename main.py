@@ -102,14 +102,18 @@ def main():
 
     model = HopVAE(config, device).to(device)
     model = load_from_checkpoint(model, checkpoint_location)
-    optimiser, scheduler = get_prior_optimiser(config, model.prior)
+
+    optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=config.gamma)
 
     wandb.watch(model, log="all")
 
     for epoch in range(config.epochs):
 
         if epoch > config.prior_start and not model.fit_prior:
+
             model.fit_prior = True
+            optimiser, scheduler = get_prior_optimiser(config, model.prior)
 
         train(model, train_loader, optimiser, scheduler)
 
