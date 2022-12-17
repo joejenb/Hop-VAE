@@ -35,7 +35,7 @@ class Normal(nn.Module):
 
 def load_from_checkpoint(model, checkpoint_location):
     if os.path.exists(checkpoint_location):
-        pre_state_dict = torch.load(checkpoint_location, map_location=device)
+        pre_state_dict = torch.load(checkpoint_location, map_location=model.device)
         to_delete = []
         for key in pre_state_dict.keys():
             if key not in model.state_dict().keys():
