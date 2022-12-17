@@ -59,6 +59,9 @@ def get_prior_optimiser(config, prior):
     if config.prior == "PixelCNN":
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
 
+    elif config.prior == "None":
+        prior_config = Normal_Config
+
     prior_config = MakeConfig(prior_config)
     optimiser = optim.Adam(prior.parameters(), lr=prior_config.learning_rate)
     scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
@@ -71,7 +74,7 @@ def get_prior(config, device):
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
     elif config.prior == "None":
         prior = Normal
-        prior_config = dict()
+        prior_config = config
     
     prior_config = MakeConfig(prior_config)
     prior_config.num_channels = config.index_dim
