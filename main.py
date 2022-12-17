@@ -11,12 +11,12 @@ import wandb
 
 from HopVAE import HopVAE
 
-from utils import get_data_loaders, get_prior_optimiser, load_from_checkpoint
+from utils import get_data_loaders, get_prior_optimiser, load_from_checkpoint, MakeConfig
 
 from configs.mnist_28_config import config
 
 wandb.init(project="Hop-VAE", config=config)
-config = wandb.config
+config = MakeConfig(config)
 
 def train(model, train_loader, optimiser, scheduler):
 
