@@ -213,6 +213,9 @@ class HopVAE(nn.Module):
 
         return x
 
+    def reconstruct(self, x):
+        return self.forward(x)
+
     def forward(self, x):
         z = self.encoder(x)
         z = self.pre_vq_conv(z)
