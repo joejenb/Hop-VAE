@@ -197,7 +197,7 @@ class HopVAE(nn.Module):
             z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
             z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
 
-            z_indices = self.prior.denoise(z_indices_quantised) / (self.num_levels - 1)
+            z_indices = self.prior.reconstruct(z_indices_quantised) / (self.num_levels - 1)
 
             z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
             z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
