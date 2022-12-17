@@ -11,7 +11,7 @@ import wandb
 
 from HopVAE import HopVAE
 
-from utils import get_data_loaders
+from utils import get_data_loaders, get_prior_optimiser
 
 from configs.mnist_28_config import config
 
@@ -104,8 +104,7 @@ def main():
     if os.path.exists(checkpoint_location):
         model.load_state_dict(torch.load(checkpoint_location, map_location=device))
 
-    optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
-    scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=config.gamma)
+    optimiser, scheduler = get_prior_optimiser(config, model.prior)
 
     wandb.watch(model, log="all")
 
@@ -113,8 +112,6 @@ def main():
 
         if epoch > config.prior_start and not model.fit_prior:
             model.fit_prior = True
-            optimiser = optim.Adam(model.prior.parameters(), lr=prior_config.learning_rate)
-            scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
 
         train(model, train_loader, optimiser, scheduler)
 

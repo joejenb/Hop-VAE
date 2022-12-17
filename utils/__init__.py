@@ -1,6 +1,7 @@
 import sys
 import os
 import torch
+import torch.optim as optim
 from torch.utils.data import random_split
 
 import torchvision
@@ -20,6 +21,15 @@ def straight_through_round(X):
     out.data = forward_value.data
     return out
 
+def get_prior_optimiser(config, prior):
+
+    if config.prior == "PixelCNN":
+        from priors.PixelCNN.configs.mnist_8_config import config as prior_config
+
+    optimiser = optim.Adam(prior.parameters(), lr=prior_config.learning_rate)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
+
+    return optimiser, scheduler
 
 def get_prior(config, device):
     if config.prior == "PixelCNN":
@@ -35,7 +45,7 @@ def get_prior(config, device):
     return prior(prior_config, device)
 
 
-def get_data_loaders(config):
+def get_data_loaders(config, PATH):
     if config.data_set == "MNIST":
         transform = transforms.Compose([
                 transforms.ToTensor(),
@@ -43,9 +53,9 @@ def get_data_loaders(config):
                 transforms.Normalize((0.1307,), (0.3081,))
             ])
 
-        train_set = torchvision.datasets.MNIST(root="/MNIST/", train=True, download=True, transform=transform)
-        val_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
-        test_set = torchvision.datasets.MNIST(root="/MNIST/", train=False, download=True, transform=transform)
+        train_set = torchvision.datasets.MNIST(root=PATH, train=True, download=True, transform=transform)
+        val_set = torchvision.datasets.MNIST(root=PATH, train=False, download=True, transform=transform)
+        test_set = torchvision.datasets.MNIST(root=PATH, train=False, download=True, transform=transform)
         num_classes = 10
         config.data_variance = 1
 
@@ -55,9 +65,9 @@ def get_data_loaders(config):
                 transforms.Resize(config.image_size),
                 transforms.Normalize((0.5,0.5,0.5), (1.0,1.0,1.0))
             ])
-        train_set = torchvision.datasets.CIFAR10(root="/CIFAR10/", train=True, download=True, transform=transform)
-        val_set = torchvision.datasets.CIFAR10(root="/CIFAR10/", train=False, download=True, transform=transform)
-        test_set = torchvision.datasets.CIFAR10(root="/CIFAR10/", train=False, download=True, transform=transform)
+        train_set = torchvision.datasets.CIFAR10(root=PATH, train=True, download=True, transform=transform)
+        val_set = torchvision.datasets.CIFAR10(root=PATH, train=False, download=True, transform=transform)
+        test_set = torchvision.datasets.CIFAR10(root=PATH, train=False, download=True, transform=transform)
         num_classes = 10
         config.data_variance = np.var(train_set.data / 255.0)
 
