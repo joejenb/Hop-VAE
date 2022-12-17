@@ -1,0 +1,22 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+
+#enter path to your script files
+code: '.'
+
+experiment_name: PixelCNN
+
+#use scripts in Python, R, Java, Julia, C#. Here we have shown python
+command: python main.py --data ${{inputs.FFHQ}}
+
+# invoke completions (Ctrl+Space, Cmd+Space) to see the list of environments available
+environment: azureml:DeepLearning-1-11:1
+
+# invoke completions (Ctrl+Space, Cmd+Space) to see the list of computes available
+compute: azureml:ModelTraining
+
+# This defines the input data to mount. The names of the items in inputs can be referenced in the command
+inputs:
+  FFHQ:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml:FFHQ:1
