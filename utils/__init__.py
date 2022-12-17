@@ -32,7 +32,22 @@ class Normal(nn.Module):
 
     def forward(self, X):
         return X
-    
+
+def load_from_checkpoint(model, checkpoint_location):
+    if os.path.exists(checkpoint_location):
+        pre_state_dict = torch.load(checkpoint_location, map_location=device)
+        to_delete = []
+        for key in pre_state_dict.keys():
+            if key not in model.state_dict().keys():
+                to_delete.append(key)
+        for key in to_delete:
+            del pre_state_dict[key]
+        for key in model.state_dict().keys():
+            if key not in pre_state_dict.keys():
+                pre_state_dict[key] = model.state_dict()[key]
+        model.load_state_dict(pre_state_dict)
+    return model
+
 def straight_through_round(X):
     forward_value = torch.round(X)
     out = X.clone()

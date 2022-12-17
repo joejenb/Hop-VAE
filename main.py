@@ -11,7 +11,7 @@ import wandb
 
 from HopVAE import HopVAE
 
-from utils import get_data_loaders, get_prior_optimiser
+from utils import get_data_loaders, get_prior_optimiser, load_from_checkpoint
 
 from configs.mnist_28_config import config
 
@@ -101,9 +101,7 @@ def main():
     output_location = f'outputs/{config.data_set}-{config.image_size}.ckpt'
 
     model = HopVAE(config, device).to(device)
-    if os.path.exists(checkpoint_location):
-        model.load_state_dict(torch.load(checkpoint_location, map_location=device))
-
+    model = load_from_checkpoint(model, checkpoint_location)
     optimiser, scheduler = get_prior_optimiser(config, model.prior)
 
     wandb.watch(model, log="all")
