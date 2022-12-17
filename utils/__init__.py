@@ -60,7 +60,7 @@ def get_prior_optimiser(config, prior):
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
 
     elif config.prior == "None":
-        prior_config = Normal_Config
+        prior_config = config.__dict__
 
     prior_config = MakeConfig(prior_config)
     optimiser = optim.Adam(prior.parameters(), lr=prior_config.learning_rate)
