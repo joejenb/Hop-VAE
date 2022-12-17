@@ -7,14 +7,8 @@ import numpy as np
 from hflayers import HopfieldLayer
 from Residual import ResidualStack
 
-from PixelCNN.PixelCNN import PixelCNN
+from utils import get_prior, straight_through_round
 
-
-def straight_through_round(X):
-    forward_value = torch.round(X)
-    out = X.clone()
-    out.data = forward_value.data
-    return out
 
 class Encoder(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
@@ -103,7 +97,7 @@ class Decoder(nn.Module):
         return self.conv_trans_3(x)
 
 class HopVAE(nn.Module):
-    def __init__(self, config, prior_config, device):
+    def __init__(self, config, device):
         super(HopVAE, self).__init__()
 
         self.device = device
@@ -153,7 +147,7 @@ class HopVAE(nn.Module):
                                       stride=1)
         
         self.fit_prior = False
-        self.prior = PixelCNN(prior_config, device)
+        self.prior = get_prior(config, device)
 
         self.decoder = Decoder(config.embedding_dim,
                         config.num_channels,
