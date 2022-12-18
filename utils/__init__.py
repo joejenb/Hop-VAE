@@ -22,7 +22,7 @@ class Normal(nn.Module):
         self.config = config
 
     def sample(self):
-        return torch.randn(1, self.config.index_dim, self.config.representation_dim, self.config.representation_dim).to(self.device)
+        return torch.randn(1, self.config.index_dim, self.config.representation_dim, self.config.representation_dim).to(self.device) * self.config.num_levels
     
     def interpolate(self, X, Y):
         return (X + Y) / 2
