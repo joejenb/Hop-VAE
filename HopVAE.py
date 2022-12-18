@@ -245,21 +245,21 @@ class HopVAE(nn.Module):
         z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
 
-        if self.fit_prior:
-            #start by assuming that num_categories and num_levels are the same 
-            z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
-            z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
+        #if self.fit_prior:
+        #start by assuming that num_categories and num_levels are the same 
+        z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
+        z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
 
-            z_pred = self.prior(z_indices_quantised.detach())
+        z_pred = self.prior(z_indices_quantised.detach())
 
-            z_cross_entropy = F.cross_entropy(z_pred, z_indices_quantised.long().detach(), reduction='none')
-            z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
-            z_prediction_error = z_prediction_error.mean()            
-
-            x_recon = self.decoder(z_embeddings)
-            return x_recon.detach(), z_prediction_error
-
+        z_cross_entropy = F.cross_entropy(z_pred, z_indices_quantised.long().detach(), reduction='none')
+        z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
+        z_prediction_error = z_prediction_error.mean()            
 
         x_recon = self.decoder(z_embeddings)
+        return x_recon, z_prediction_error
 
-        return x_recon, embedding_recon_loss#torch.zeros(1, requires_grad=True).to(self.device)
+
+        #x_recon = self.decoder(z_embeddings)
+
+        #return x_recon, embedding_recon_loss#torch.zeros(1, requires_grad=True).to(self.device)
