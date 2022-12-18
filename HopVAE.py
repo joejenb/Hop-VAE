@@ -257,7 +257,7 @@ class HopVAE(nn.Module):
         z_prediction_error = z_prediction_error.mean()            
 
         x_recon = self.decoder(z_embeddings)
-        return x_recon, z_prediction_error
+        return x_recon, z_prediction_error + embedding_recon_loss
 
 
         #x_recon = self.decoder(z_embeddings)
