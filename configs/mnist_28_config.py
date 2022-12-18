@@ -20,7 +20,7 @@ config["num_channels"] = 1
 config["data_set"] = "MNIST"
 config["representation_dim"] = 8
 
-config["prior"] = "None"
+config["prior"] = "PixelCNN"
 config["num_levels"] = 512
 config["prior_start"] = 100
 config["index_dim"] = 3
