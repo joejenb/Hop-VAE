@@ -31,7 +31,7 @@ class Normal(nn.Module):
         return X
 
     def forward(self, X):
-        return X
+        return torch.rand(X.shape[0], self.num_levels, self.config.index_dim, X.shape[2], X.shape[3]).to(self.device)
 
 def load_from_checkpoint(model, checkpoint_location):
     if os.path.exists(checkpoint_location):
