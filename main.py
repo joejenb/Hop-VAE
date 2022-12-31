@@ -115,7 +115,7 @@ def main():
             model.fit_prior = True
             optimiser, scheduler = get_prior_optimiser(config, model.prior)
 
-        #train(model, train_loader, optimiser, scheduler)
+        train(model, train_loader, optimiser, scheduler)
 
         if not epoch % 5:
             test(model, test_loader)
