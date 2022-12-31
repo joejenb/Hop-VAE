@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import numpy as np
 
 from hflayers import HopfieldLayer
-from Residual import ResidualStack
 
 from utils import get_prior, straight_through_round
 
