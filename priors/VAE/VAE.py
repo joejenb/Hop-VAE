@@ -100,7 +100,7 @@ class Decoder(nn.Module):
         self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
                                                 out_channels=num_hiddens//2,
                                                 kernel_size=3, 
-                                                stride=1, padding=2)
+                                                stride=1, padding=3)
 
         self._conv_trans_3 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
                                                 out_channels=out_channels,
