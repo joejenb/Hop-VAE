@@ -157,8 +157,8 @@ class VAE(nn.Module):
         return eps * std + mu
 
     def sample(self):
-        mu = torch.randn(1, self._latent_dim)
-        log_var = torch.randn(1, self._latent_dim)
+        mu = torch.randn(1, self._latent_dim).to(self.device)
+        log_var = torch.randn(1, self._latent_dim).to(self.device)
 
         flat_z_sampled = self.reparameterize(mu, log_var)
         flat_z_sampled = self.pre_decode(flat_z_sampled)
