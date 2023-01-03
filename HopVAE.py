@@ -232,6 +232,6 @@ class HopVAE(nn.Module):
             return x_recon, embedding_recon_loss + 0.001 * kl_error
 
 
-        x_recon = self.decoder(z_embeddings)
+        x_recon = self.decoder(z)
 
         return x_recon, torch.zeros(1, requires_grad=True).to(self.device)
