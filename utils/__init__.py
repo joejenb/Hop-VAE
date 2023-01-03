@@ -83,8 +83,6 @@ def get_prior(config, device):
         prior_config = dict(config.__dict__)
 
     prior_config = MakeConfig(prior_config)
-    prior_config.num_channels = config.index_dim
-    prior_config.num_categories = config.num_levels
     return prior(prior_config, device)
 
 
