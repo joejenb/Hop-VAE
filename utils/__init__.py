@@ -59,6 +59,9 @@ def get_prior_optimiser(config, prior):
     if config.prior == "PixelCNN":
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
 
+    elif config.prior == "VAE":
+        from priors.VAE.configs.mnist_8_config import config as prior_config
+
     elif config.prior == "None":
         prior_config = dict(config.__dict__)
 
@@ -72,6 +75,9 @@ def get_prior(config, device):
     if config.prior == "PixelCNN":
         from priors.PixelCNN.PixelCNN import PixelCNN as prior
         from priors.PixelCNN.configs.mnist_8_config import config as prior_config
+    elif config.prior == "VAE":
+        from priors.VAE.VAE import VAE as prior
+        from priors.VAE.configs.mnist_8_config import config as prior_config
     elif config.prior == "None":
         prior = Normal
         prior_config = dict(config.__dict__)

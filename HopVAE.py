@@ -153,22 +153,12 @@ class HopVAE(nn.Module):
                             state_pattern_as_static=True
                         )
 
-        self.embedding_to_index = HopfieldLayer(
+        self.hopfield_joint = HopfieldLayer(
                             input_size=config.embedding_dim,                           # R
-                            output_size=config.index_dim,
                             quantity=config.num_embeddings,                             # W_K
                             stored_pattern_as_static=True,
                             state_pattern_as_static=True
                         )
-        
-        self.index_to_embedding = HopfieldLayer(
-                            input_size=config.index_dim,                           # R
-                            output_size=config.embedding_dim,
-                            quantity=config.num_embeddings,                             # W_K
-                            stored_pattern_as_static=True,
-                            state_pattern_as_static=True
-                        )
-
 
         self.post_vq_conv = nn.Conv2d(in_channels=config.index_dim, 
                                       out_channels=config.index_dim,
@@ -185,12 +175,11 @@ class HopVAE(nn.Module):
                         config.num_residual_hiddens)
 
     def sample(self):
-        z_indices = self.prior.sample().type(torch.int64) / (self.num_levels - 1)
+        z = self.prior.sample()
+        z = z.permute(0, 2, 3, 1).contiguous()
 
-        z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
-        z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
-
-        z_embeddings = self.index_to_embedding(z_indices)
+        z_embeddings = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+        z_embeddings = self.hopfield_joint(z_embeddings)
 
         z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
@@ -213,30 +202,10 @@ class HopVAE(nn.Module):
             z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
             z_embeddings = self.hopfield(z)
-            z_indices = self.embedding_to_index(z_embeddings)
-
-            #z_indices = z_indices.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
-            #z_indices = z_indices.permute(0, 3, 1, 2).contiguous()
-
-            z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
-            z_indices = 1 - F.relu(1 - z_indices)
-            #z_indices = F.sigmoid(self.post_vq_conv(z_indices))
-            z_indices_quantised = straight_through_round(z_indices * (self.num_levels - 1))
-
-            z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
-            z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
-
-            z_indices = self.prior.reconstruct(z_indices_quantised) / (self.num_levels - 1)
-
-            z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
-            z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
-
-            z_embeddings = self.index_to_embedding(z_indices)
-
-            z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
-            z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
-
-            xy_inter = self.decoder(z_embeddings)
+            z = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+            z = z.permute(0, 3, 1, 2).contiguous()
+            
+            xy_inter = self.decoder(z)
 
             return xy_inter.detach()
 
@@ -253,42 +222,23 @@ class HopVAE(nn.Module):
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
         z_embeddings = self.hopfield(z)
-
-        z_indices = self.embedding_to_index(z_embeddings)
-
-        #z_indices = z_indices.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
-        #z_indices = z_indices.permute(0, 3, 1, 2).contiguous()
-
-        #z_indices = F.relu(z_indices)#self.post_vq_conv(z_indices))
-        #z_indices = 1 - F.relu(1 - z_indices)
-        z_indices = torch.sigmoid(z_indices)#self.post_vq_conv(z_indices))
-
-        z_indices_quantised = straight_through_round(z_indices * (self.num_levels - 1))
-        z_indices = z_indices_quantised / (self.num_levels - 1)
-
-        #z_indices = z_indices.permute(0, 2, 3, 1).contiguous()
-        #z_indices = z_indices.view(-1, self.representation_dim * self.representation_dim, self.index_dim)
-        z_embeddings_recon = self.index_to_embedding(z_indices)
-        embedding_recon_loss = F.mse_loss(z_embeddings_recon, z_embeddings)
-
-        z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
-        z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
+        z = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+        z = z.permute(0, 3, 1, 2).contiguous()
 
         if self.fit_prior:
-            #start by assuming that num_categories and num_levels are the same 
-            z_indices_quantised = z_indices_quantised.view(-1, self.representation_dim, self.representation_dim, self.index_dim)
-            z_indices_quantised = z_indices_quantised.permute(0, 3, 1, 2).contiguous()
 
-            z_pred = self.prior(z_indices_quantised.detach())
+            z_recon, mu, log_var = self.prior(z.detach())
+            z_recon = z_recon.permute(0, 2, 3, 1).contiguous()
+            z_embeddings_recon = z_recon.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+            z_embeddings_recon = self.hopfield_joint(z_embeddings_recon)
 
-            z_cross_entropy = F.cross_entropy(z_pred, z_indices_quantised.long().detach(), reduction='none')
-            z_prediction_error = z_cross_entropy.mean(dim=[1,2,3]) * np.log2(np.exp(1))
-            z_prediction_error = z_prediction_error.mean()            
+            kl_error = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+            embedding_recon_loss = F.mse_loss(z_embeddings_recon, z_embeddings)
 
-            x_recon = self.decoder(z_embeddings)
-            return x_recon, z_prediction_error + embedding_recon_loss
+            x_recon = self.decoder(z)
+            return x_recon, embedding_recon_loss + 0.001 * kl_error
 
 
         x_recon = self.decoder(z_embeddings)
 
-        return x_recon, embedding_recon_loss#torch.zeros(1, requires_grad=True).to(self.device)
+        return x_recon, torch.zeros(1, requires_grad=True).to(self.device)
