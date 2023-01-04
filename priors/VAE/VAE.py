@@ -139,8 +139,8 @@ class VAE(nn.Module):
                                       kernel_size=1, 
                                       stride=1)
 
-        self.mu = nn.Linear(config.embedding_dim * config.representation_dim ** 2, config.latent_dim)
-        self.log_var = nn.Linear(config.embedding_dim * config.representation_dim ** 2, config.latent_dim)
+        self.mu = nn.Linear(4096, config.latent_dim)
+        self.log_var = nn.Linear(4096, config.latent_dim)
 
         self.pre_decode = nn.Linear(config.latent_dim, config.embedding_dim * config.representation_dim ** 2)
 
