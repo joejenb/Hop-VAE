@@ -232,7 +232,7 @@ class HopVAE(nn.Module):
             #embedding_recon_loss = F.mse_loss(z_embeddings_recon, z_embeddings.detach())
 
             x_recon = self.decoder(z)
-            return x_recon, 0.001 * kl_error#embedding_recon_loss + 0.00001 * kl_error
+            return x_recon, 0.00001 * kl_error#embedding_recon_loss + 0.00001 * kl_error
 
 
         x_recon = self.decoder(z)
