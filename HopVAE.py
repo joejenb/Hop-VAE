@@ -169,7 +169,6 @@ class HopVAE(nn.Module):
 
     def sample(self):
         z = self.prior.sample()
-        print(z.size())
         z = z.permute(0, 2, 3, 1).contiguous()
 
         z_embeddings = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
