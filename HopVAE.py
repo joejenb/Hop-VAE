@@ -225,11 +225,14 @@ class HopVAE(nn.Module):
             z_embeddings_recon = z_recon.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
             z_embeddings_recon = self.hopfield_joint(z_embeddings_recon)
 
+            z = z_embeddings_recon.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+            z = z.permute(0, 3, 1, 2).contiguous()
+
             kl_error = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-            embedding_recon_loss = F.mse_loss(z_embeddings_recon, z_embeddings.detach())
+            #embedding_recon_loss = F.mse_loss(z_embeddings_recon, z_embeddings.detach())
 
             x_recon = self.decoder(z)
-            return x_recon.detach(), embedding_recon_loss + 0.00001 * kl_error
+            return x_recon, 0.001 * kl_error#embedding_recon_loss + 0.00001 * kl_error
 
 
         x_recon = self.decoder(z)
