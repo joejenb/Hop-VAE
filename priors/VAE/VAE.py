@@ -105,7 +105,7 @@ class Decoder(nn.Module):
         self._conv_trans_3 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
                                                 out_channels=out_channels,
                                                 kernel_size=3, 
-                                                stride=1)
+                                                stride=1, padding=1)
 
     def forward(self, inputs):
         x = self._conv_1(inputs)
