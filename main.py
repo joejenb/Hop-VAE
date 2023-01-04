@@ -113,7 +113,7 @@ def main():
         if epoch > config.prior_start and not model.fit_prior:
 
             model.fit_prior = True
-            optimiser, scheduler = get_prior_optimiser(config, model.prior)
+            #optimiser, scheduler = get_prior_optimiser(config, model.prior)
 
         train(model, train_loader, optimiser, scheduler)
 
