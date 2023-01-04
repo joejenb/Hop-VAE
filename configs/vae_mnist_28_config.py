@@ -21,4 +21,4 @@ config["data_set"] = "MNIST"
 config["representation_dim"] = 8
 
 config["prior"] = "VAE"
-config["prior_start"] = 1
+config["prior_start"] = -1
