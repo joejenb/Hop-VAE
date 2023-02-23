@@ -22,13 +22,16 @@ config = MakeConfig(config)
 
 def train(model, train_loader, optimiser, scheduler):
 
-    eraser = transforms.RandomErasing(p=1.0, scale=(0.15, 0.15))
     model.train()
     train_res_recon_error = 0
+    eraser = transforms.RandomErasing(p=1.0, scale=(0.04, 0.04))
 
     for X, _ in train_loader:
         X = X.to(model.device)
-        X_erased = eraser(X)
+
+        for erosion in range(7):
+            X_erased = eraser(X)
+
         optimiser.zero_grad()
 
         X_recon, Z_prediction_error = model(X_erased)
@@ -49,10 +52,10 @@ def train(model, train_loader, optimiser, scheduler):
 
 def test(model, test_loader):
     # Recall Memory
-    eraser = transforms.RandomErasing(p=1.0, scale=(0.15, 0.15))
     model.eval() 
 
     test_res_recon_error = 0
+    eraser = transforms.RandomErasing(p=1.0, scale=(0.04, 0.04))
 
     # Last batch is of different size so simplest to do like this
     iterator = iter(test_loader)
@@ -65,7 +68,9 @@ def test(model, test_loader):
     with torch.no_grad():
         for X, _ in test_loader:
             X = X.to(model.device)
-            X_erased = eraser(X)
+
+            for erosion in range(7):
+                X_erased = eraser(X)
 
             X_recon, _ = model(X_erased)
             recon_error = F.mse_loss(X_recon, X)
