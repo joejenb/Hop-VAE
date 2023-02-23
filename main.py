@@ -30,7 +30,7 @@ def train(model, train_loader, optimiser, scheduler):
         X = X.to(model.device)
 
         X_erased = eraser(X)
-        for erosion in range(4):
+        for erosion in range(8):
             X_erased = eraser(X_erased)
 
         optimiser.zero_grad()
@@ -71,7 +71,7 @@ def test(model, test_loader):
             X = X.to(model.device)
 
             X_erased = eraser(X)
-            for erosion in range(4):
+            for erosion in range(8):
                 X_erased = eraser(X_erased)
 
             X_recon, _ = model(X_erased)
