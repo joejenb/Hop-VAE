@@ -2,6 +2,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
+from torchvision import transforms
+
 import argparse
 
 import numpy as np
@@ -20,14 +22,16 @@ config = MakeConfig(config)
 
 def train(model, train_loader, optimiser, scheduler):
 
+    eraser = transforms.RandomErasing()
     model.train()
     train_res_recon_error = 0
 
     for X, _ in train_loader:
         X = X.to(model.device)
+        X_erased = eraser(X)
         optimiser.zero_grad()
 
-        X_recon, Z_prediction_error = model(X)
+        X_recon, Z_prediction_error = model(X_erased)
 
         recon_error = F.mse_loss(X_recon, X)
         loss = recon_error + Z_prediction_error
@@ -45,6 +49,7 @@ def train(model, train_loader, optimiser, scheduler):
 
 def test(model, test_loader):
     # Recall Memory
+    eraser = transforms.RandomErasing()
     model.eval() 
 
     test_res_recon_error = 0
@@ -60,8 +65,9 @@ def test(model, test_loader):
     with torch.no_grad():
         for X, _ in test_loader:
             X = X.to(model.device)
+            X_erased = eraser(X)
 
-            X_recon, _ = model(X)
+            X_recon, _ = model(X_erased)
             recon_error = F.mse_loss(X_recon, X)
             
             test_res_recon_error += recon_error.item()

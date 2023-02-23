@@ -86,16 +86,14 @@ def get_data_loaders(config, PATH):
     transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(config.image_size),
-            transforms.Normalize((0.5,0.5,0.5), (1.0,1.0,1.0)),
-            transforms.RandomErasing()
+            transforms.Normalize((0.5,0.5,0.5), (1.0,1.0,1.0))
         ])
 
     if config.data_set == "MNIST":
         transform = transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Resize(config.image_size),
-                transforms.Normalize((0.1307,), (0.3081,)),
-                transforms.RandomErasing()
+                transforms.Normalize((0.1307,), (0.3081,))
             ])
 
         train_set = torchvision.datasets.MNIST(root=PATH, train=True, download=True, transform=transform)
