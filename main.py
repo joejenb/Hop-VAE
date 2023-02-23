@@ -22,7 +22,7 @@ config = MakeConfig(config)
 
 def train(model, train_loader, optimiser, scheduler):
 
-    eraser = transforms.RandomErasing()
+    eraser = transforms.RandomErasing(p=1.0)
     model.train()
     train_res_recon_error = 0
 
@@ -49,7 +49,7 @@ def train(model, train_loader, optimiser, scheduler):
 
 def test(model, test_loader):
     # Recall Memory
-    eraser = transforms.RandomErasing()
+    eraser = transforms.RandomErasing(p=1.0)
     model.eval() 
 
     test_res_recon_error = 0
