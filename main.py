@@ -24,12 +24,12 @@ def train(model, train_loader, optimiser, scheduler):
 
     model.train()
     train_res_recon_error = 0
-    eraser = transforms.RandomErasing(p=1.0, scale=(0.04, 0.04))
 
     for X, _ in train_loader:
         X = X.to(model.device)
 
-        for erosion in range(7):
+        for erosion in range(5):
+            eraser = transforms.RandomErasing(p=1.0, scale=(0.02, 0.02))
             X_erased = eraser(X)
 
         optimiser.zero_grad()
@@ -55,7 +55,6 @@ def test(model, test_loader):
     model.eval() 
 
     test_res_recon_error = 0
-    eraser = transforms.RandomErasing(p=1.0, scale=(0.04, 0.04))
 
     # Last batch is of different size so simplest to do like this
     iterator = iter(test_loader)
@@ -69,7 +68,8 @@ def test(model, test_loader):
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            for erosion in range(7):
+            for erosion in range(5):
+                eraser = transforms.RandomErasing(p=1.0, scale=(0.02, 0.02))
                 X_erased = eraser(X)
 
             X_recon, _ = model(X_erased)
