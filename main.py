@@ -96,7 +96,7 @@ def main():
     use_cuda = not config.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    train_loader, val_loader, test_loader, num_classes = get_data_loaders(config, PATH)
+    train_loader, val_loader, test_loader = get_data_loaders(config, PATH)
     checkpoint_location = f'checkpoints/{config.data_set}-{config.image_size}.ckpt'
     output_location = f'outputs/{config.data_set}-{config.image_size}.ckpt'
 
