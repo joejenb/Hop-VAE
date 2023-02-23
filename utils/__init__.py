@@ -111,9 +111,9 @@ def get_data_loaders(config, PATH):
         train_set, val_set, test_set = random_split(dataset, lengths)
     
     elif config.data_set == "CELEBA":
-        train_set = torchvision.datasets.CelebA(root=PATH, split='train', download=True, transform=transform, target_type="identity")
-        val_set = torchvision.datasets.CelebA(root=PATH, split='valid', download=True, transform=transform, target_type="identity")
-        test_set = torchvision.datasets.CelebA(root=PATH, split='test', download=True, transform=transform, target_type="identity")
+        train_set = torchvision.datasets.CelebA(root=PATH, split='train', download=False, transform=transform, target_type="identity")
+        val_set = torchvision.datasets.CelebA(root=PATH, split='valid', download=False, transform=transform, target_type="identity")
+        test_set = torchvision.datasets.CelebA(root=PATH, split='test', download=False, transform=transform, target_type="identity")
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=config.batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=config.batch_size, shuffle=False)
