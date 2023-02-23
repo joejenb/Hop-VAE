@@ -19,7 +19,8 @@ config["num_embeddings"] = 512
 config["num_channels"] = 3
 config["data_set"] = "FFHQ"
 config["representation_dim"] = 9
+
+config["prior"] = "None"
 config["num_levels"] = 512
-config["prior_start"] = 5
-config["commitment_cost"] = 1
-config["decay"] = 0.99
+config["prior_start"] = 100
+config["index_dim"] = 3

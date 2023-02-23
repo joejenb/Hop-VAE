@@ -15,14 +15,14 @@ from HopVAE import HopVAE
 
 from utils import get_data_loaders, get_prior_optimiser, load_from_checkpoint, MakeConfig
 
-from configs.mnist_28_config import config
+from configs.ffhq_32_config import config
 
 wandb.init(project="Hop-VAE", config=config)
 config = MakeConfig(config)
 
 def train(model, train_loader, optimiser, scheduler):
 
-    eraser = transforms.RandomErasing(p=1.0)
+    eraser = transforms.RandomErasing(p=1.0, scale=(0.15, 0.15))
     model.train()
     train_res_recon_error = 0
 
@@ -49,7 +49,7 @@ def train(model, train_loader, optimiser, scheduler):
 
 def test(model, test_loader):
     # Recall Memory
-    eraser = transforms.RandomErasing(p=1.0)
+    eraser = transforms.RandomErasing(p=1.0, scale=(0.15, 0.15))
     model.eval() 
 
     test_res_recon_error = 0
