@@ -74,7 +74,7 @@ def test(model, test_loader):
 
         ZY_inter = model.interpolate(Z, Y)
 
-        example_images = [wandb.Image(img) for img in X]
+        example_images = [wandb.Image(img) for img in X_erased]
         example_reconstructions = [wandb.Image(recon_img) for recon_img in X_recon]
         example_samples = [wandb.Image(model.sample()) for _ in X_recon]
         example_Z = [wandb.Image(recon_img) for recon_img in Z]
