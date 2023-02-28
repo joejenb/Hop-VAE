@@ -8,30 +8,13 @@ from torch.utils.data import random_split
 import torchvision
 from torchvision import transforms
 
+from datasets.OSTerrain50 import OSTerrain50
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 class MakeConfig:
     def __init__(self, config):
         self.__dict__ = config
-
-class Normal(nn.Module):
-    def __init__(self, config, device):
-        super(Normal, self).__init__()
-        self.device = device
-        self.config = config
-
-    def sample(self):
-        return torch.rand(1, self.config.index_dim, self.config.representation_dim, self.config.representation_dim).to(self.device) * self.config.num_levels
-    
-    def interpolate(self, X, Y):
-        return (X + Y) / 2
-    
-    def reconstruct(self, X):
-        return X
-
-    def forward(self, X):
-        return torch.rand(X.shape[0], self.num_levels, self.config.index_dim, X.shape[2], X.shape[3]).to(self.device)
 
 def load_from_checkpoint(model, checkpoint_location):
     if os.path.exists(checkpoint_location):
@@ -53,34 +36,6 @@ def straight_through_round(X):
     out = X.clone()
     out.data = forward_value.data
     return out
-
-def get_prior_optimiser(config, prior):
-
-    if config.prior == "PixelCNN":
-        from priors.PixelCNN.configs.mnist_8_config import config as prior_config
-
-    elif config.prior == "None":
-        prior_config = dict(config.__dict__)
-
-    prior_config = MakeConfig(prior_config)
-    optimiser = optim.Adam(prior.parameters(), lr=prior_config.learning_rate)
-    scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=prior_config.gamma)
-
-    return optimiser, scheduler
-
-def get_prior(config, device):
-    if config.prior == "PixelCNN":
-        from priors.PixelCNN.PixelCNN import PixelCNN as prior
-        from priors.PixelCNN.configs.mnist_8_config import config as prior_config
-    elif config.prior == "None":
-        prior = Normal
-        prior_config = dict(config.__dict__)
-
-    prior_config = MakeConfig(prior_config)
-    prior_config.num_channels = config.index_dim
-    prior_config.num_categories = config.num_levels
-    return prior(prior_config, device)
-
 
 def get_data_loaders(config, PATH):
     transform=transforms.Compose([
@@ -114,7 +69,12 @@ def get_data_loaders(config, PATH):
         train_set = torchvision.datasets.CelebA(root=PATH, split='train', download=False, transform=transform, target_type="identity")
         val_set = torchvision.datasets.CelebA(root=PATH, split='valid', download=False, transform=transform, target_type="identity")
         test_set = torchvision.datasets.CelebA(root=PATH, split='test', download=False, transform=transform, target_type="identity")
-
+    
+    elif config.data_set == "OSTerrain50":
+        train_set = OSTerrain50(root=PATH, split='train', transform=transforms.RandomCrop(config.image_size))
+        val_set = OSTerrain50(root=PATH, split='val', transform=transforms.RandomCrop(config.image_size))
+        test_set = OSTerrain50(root=PATH, split='test', transform=transforms.RandomCrop(config.image_size)) 
+    
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=config.batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=config.batch_size, shuffle=False)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=config.batch_size, shuffle=False)
