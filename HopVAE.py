@@ -177,12 +177,10 @@ class HopVAE(nn.Module):
 
         dist_params = self.decoder(Z_embeddings).permute(0, 2, 3, 1).contiguous()
 
-        # unpack parameters. (B, id, id, num_mixtures + num_mixtures * num_channels * 2) -> 3 for means, scales and no coifficients
-        # unpack parameters. (B, id, id, 40) -> assuming have 1 channel to predict
         logit_PI = dist_params[:, :, :, :self.num_mixtures]
         dist_params = dist_params[:, :, :, self.num_mixtures:].view(-1, self.image_size, self.image_size, self.num_channels, self.num_mixtures * 2)
         MU = dist_params[:, :, :, :, :self.num_mixtures]
-        log_S = torch.clamp(dist_params[:, :, :, :, self.num_mixtures:2 * self.num_mixtures], min=-7.)
+        log_S = torch.clamp(dist_params[:, :, :, :, self.num_mixtures:2 * self.num_mixtures], min=-32.23619130191664)
 
         if self.training:
             X = X.permute(0, 2, 3, 1).contiguous().unsqueeze(3)

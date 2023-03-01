@@ -23,12 +23,20 @@ def difference_of_gaussians(image, kernel, sigma1=3, sigma2=5):
     diffs = gaussian_filter(image.cpu().detach().numpy(), sigma=sigma2) - gaussian_filter(image.cpu().detach().numpy(), sigma=sigma1)
     return torch.from_numpy(diffs).to(image.device)
 
-def load_from_checkpoint(model, checkpoint_location):
-    print(checkpoint_location)
+def load_from_checkpoint(model, optimiser, checkpoint_location):
     if os.path.exists(checkpoint_location):
-        pre_state_dict = torch.load(checkpoint_location, map_location=model.device)
-        model.load_state_dict(pre_state_dict)
-    return model
+        state_dict = torch.load(checkpoint_location, map_location=model.device)
+        model.load_state_dict(state_dict)#["model"])
+        optimiser.load_state_dict(state_dict["optimiser"])
+        epoch = state_dict["epoch"]
+    return model, optimiser, epoch
+
+def save_checkpoint(model, optimiser, epoch, output_location):
+    torch.save({
+        "model": model.state_dict(),
+        "optimiser": optimiser.state_dict(),
+        "epoch": epoch,
+    }, output_location)
 
 def straight_through_round(X):
     forward_value = torch.round(X)

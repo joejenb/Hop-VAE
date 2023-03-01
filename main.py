@@ -14,7 +14,7 @@ import wandb
 
 from HopVAE import HopVAE
 
-from utils import get_data_loaders, load_from_checkpoint, MakeConfig, difference_of_gaussians
+from utils import get_data_loaders, load_from_checkpoint, MakeConfig, save_checkpoint
 
 from configs.OSTerrain50_64_config import config
 
@@ -41,8 +41,6 @@ def train(model, train_loader, optimiser, scheduler):
         
         train_res_recon_error += recon_error.item()
 
-    #example_DoG = [wandb.Image(dog_img) for dog_img in difference_of_gaussians(X, (5, 5))]
-
     scheduler.step()
     wandb.log({
         "Train Reconstruction Error": (train_res_recon_error) / len(train_loader.dataset),
@@ -50,7 +48,6 @@ def train(model, train_loader, optimiser, scheduler):
 
 
 def test(model, test_loader):
-    # Recall Memory
     model.eval() 
 
     test_res_recon_error = 0
@@ -60,13 +57,6 @@ def test(model, test_loader):
             X = X.to(model.device)
 
             X_recon = model(X)
-            #X_recon = torch.zeros(X.size()).to(model.device)
-
-            '''for x in range(X_recon.shape[2]):
-                for y in range(X_recon.shape[3]):
-                    probs = F.softmax(X_probs.unsqueeze(2)[:, :, 0, x, y], dim=-1)
-                    X_recon[:, 0, x, y] = torch.multinomial(probs, num_samples=1).squeeze(dim=-1).float() / model.num_levels'''
-            
             recon_error = F.mse_loss(X_recon, X)
             
             test_res_recon_error += recon_error.item()
@@ -96,14 +86,15 @@ def main():
     output_location = f'outputs/{config.data_set}-{config.image_size}.ckpt'
 
     model = HopVAE(config, device).to(device)
-    model = load_from_checkpoint(model, checkpoint_location)
 
     optimiser = optim.Adam(model.parameters(), lr=config.learning_rate)
     scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=config.gamma)
 
+    model, optimiser, epoch = load_from_checkpoint(model, optimiser, checkpoint_location)
+
     wandb.watch(model, log="all")
 
-    for epoch in range(config.epochs):
+    for epoch in range(epoch, config.epochs):
 
         train(model, train_loader, optimiser, scheduler)
 
@@ -111,7 +102,7 @@ def main():
             test(model, test_loader)
 
         if not epoch % 5:
-            torch.save(model.state_dict(), output_location)
+            save_checkpoint(model, optimiser, epoch, output_location)
 
 if __name__ == '__main__':
     main()
