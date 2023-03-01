@@ -20,3 +20,4 @@ config["num_channels"] = 1
 config["data_set"] = "OSTERRAIN50"
 config["representation_dim"] = 17
 config["num_levels"] = 512
+config["num_mixtures"] = 10

@@ -6,7 +6,7 @@ import numpy as np
 
 from hflayers import HopfieldLayer
 
-from utils import get_prior, straight_through_round
+from DiscretisedLogisticMixture import DiscretisedLogisticMixture
 
 class Residual(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
@@ -135,6 +135,8 @@ class HopVAE(nn.Module):
         self.embedding_dim = config.embedding_dim
         self.representation_dim = config.representation_dim
         self.num_levels = config.num_levels
+        self.num_channels = config.num_channels
+        self.num_mixtures = config.num_mixtures
 
         self.encoder = Encoder(config.num_channels, config.num_hiddens,
                                 config.num_residual_layers, 
@@ -152,29 +154,33 @@ class HopVAE(nn.Module):
                             state_pattern_as_static=True
                         )
 
-        self.post_vq_conv = nn.Conv2d(in_channels=config.index_dim, 
-                                      out_channels=config.index_dim,
-                                      kernel_size=1, 
-                                      stride=1)
-        
         self.decoder = Decoder(config.embedding_dim,
-                        config.num_channels,
+                        self.num_mixtures * (1 + self.num_channels * 2),
                         config.num_hiddens, 
                         config.num_residual_layers, 
                         config.num_residual_hiddens)
 
-    def forward(self, x):
-        z = self.encoder(x)
-        z = self.pre_vq_conv(z)
+        self.discretised_logistic_mixture = DiscretisedLogisticMixture(config, device)
 
-        z = z.permute(0, 2, 3, 1).contiguous()
-        z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
+    def forward(self, X):
+        Z = self.encoder(X)
+        Z = self.pre_vq_conv(Z)
 
-        z_embeddings = self.hopfield(z)
+        Z = Z.permute(0, 2, 3, 1).contiguous()
+        Z = Z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
 
-        z_embeddings = z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
-        z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
+        Z_embeddings = self.hopfield(Z)
 
-        x_recon = self.decoder(z_embeddings)
+        Z_embeddings = Z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
+        Z_embeddings = Z_embeddings.permute(0, 3, 1, 2).contiguous()
 
-        return x_recon
+        dist_params = self.decoder(Z_embeddings).view(-1, self.num_mixtures * (1 + self.num_channels * 2))
+        PI, MU, S = torch.split(dist_params,[self.num_mixtures, self.num_mixtures * self.num_channels, self.num_mixtures * self.num_channels], dim=1)
+
+        if self.training:
+            X = (X * self.num_levels).long().float()
+            probs = self.discretised_logistic_mixture(PI, MU, S, X)
+            return probs
+        else:
+            sample = self.discretised_logistic_mixture.sample(PI, MU, S)
+            return sample

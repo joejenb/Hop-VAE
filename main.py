@@ -26,19 +26,14 @@ def train(model, train_loader, optimiser, scheduler):
     model.train()
     train_res_recon_error = 0
 
-    cross_entropy_loss = nn.CrossEntropyLoss() 
-
     for X, _ in train_loader:
         X = X.to(model.device)
 
         optimiser.zero_grad()
 
-        X_recon = model(X)
+        X_probs = model(X)
 
-        X = (X * model.num_levels).long()
-
-        X_recon = X_recon.unsqueeze(2)
-        recon_error = cross_entropy_loss(X_recon, X)
+        recon_error = torch.sum(-X_probs.log())
         loss = recon_error
 
         loss.backward()
@@ -64,14 +59,14 @@ def test(model, test_loader):
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            X_log = model(X)
+            X_probs = model(X)
             X_recon = torch.zeros(X.size()).to(model.device)
 
-            for x in range(X_recon.shape[2]):
+            '''for x in range(X_recon.shape[2]):
                 for y in range(X_recon.shape[3]):
-                    probs = F.softmax(X_log.unsqueeze(2)[:, :, 0, x, y], dim=-1)
-                    X_recon[:, 0, x, y] = torch.multinomial(probs, num_samples=1).squeeze(dim=-1).float() / model.num_levels
-            #X_recon = X_recon.permute(0, 2, 3, 1).contiguous().argmax(dim=3).unsqueeze(1).float() / model.num_levels
+                    probs = F.softmax(X_probs.unsqueeze(2)[:, :, 0, x, y], dim=-1)
+                    X_recon[:, 0, x, y] = torch.multinomial(probs, num_samples=1).squeeze(dim=-1).float() / model.num_levels'''
+            
 
             recon_error = F.mse_loss(X_recon, X)
             

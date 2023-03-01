@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import random_split
 
+from scipy.ndimage import gaussian_filter
+
 import torchvision
 from torchvision import transforms
 
@@ -16,18 +18,15 @@ class MakeConfig:
     def __init__(self, config):
         self.__dict__ = config
 
+def difference_of_gaussians(image, kernel, sigma1=3, sigma2=5):
+    channels_in, channels_out = image.shape[1], image.shape[1]
+    diffs = gaussian_filter(image.cpu().detach().numpy(), sigma=sigma2) - gaussian_filter(image.cpu().detach().numpy(), sigma=sigma1)
+    return torch.from_numpy(diffs).to(image.device)
+
 def load_from_checkpoint(model, checkpoint_location):
+    print(checkpoint_location)
     if os.path.exists(checkpoint_location):
         pre_state_dict = torch.load(checkpoint_location, map_location=model.device)
-        to_delete = []
-        for key in pre_state_dict.keys():
-            if key not in model.state_dict().keys():
-                to_delete.append(key)
-        for key in to_delete:
-            del pre_state_dict[key]
-        for key in model.state_dict().keys():
-            if key not in pre_state_dict.keys():
-                pre_state_dict[key] = model.state_dict()[key]
         model.load_state_dict(pre_state_dict)
     return model
 
@@ -70,10 +69,10 @@ def get_data_loaders(config, PATH):
         val_set = torchvision.datasets.CelebA(root=PATH, split='valid', download=False, transform=transform, target_type="identity")
         test_set = torchvision.datasets.CelebA(root=PATH, split='test', download=False, transform=transform, target_type="identity")
     
-    elif config.data_set == "OSTerrain50":
-        train_set = OSTerrain50(root=PATH, split='train', transform=transforms.RandomCrop(config.image_size))
-        val_set = OSTerrain50(root=PATH, split='val', transform=transforms.RandomCrop(config.image_size))
-        test_set = OSTerrain50(root=PATH, split='test', transform=transforms.RandomCrop(config.image_size)) 
+    elif config.data_set == "OSTERRAIN50":
+        train_set = OSTerrain50(PATH, split='train', transform=transforms.Resize(config.image_size))
+        val_set = OSTerrain50(PATH, split='val', transform=transforms.Resize(config.image_size))
+        test_set = OSTerrain50(PATH, split='test', transform=transforms.Resize(config.image_size)) 
     
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=config.batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=config.batch_size, shuffle=False)
