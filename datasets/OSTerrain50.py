@@ -40,9 +40,9 @@ class OSTerrain50(Dataset):
                         height_map = torch.Tensor(height_map_li)
                         all_height_maps.append(height_map)
 
-        data = F.normalize(torch.stack(all_height_maps, dim=0)).unsqueeze(1)
+        data = torch.stack(all_height_maps, dim=0).unsqueeze(1)
         data -= data.min()
-        data = data / data.max()
+        data = (data / (data.max() / 2)) - 1
 
         lengths = [int(len(data)*0.7), int(len(data)*0.1), len(data) - int(len(data)*0.1) - int(len(data)*0.7)]
         train_data, val_data, test_data = torch.split(data, lengths)

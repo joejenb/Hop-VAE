@@ -31,9 +31,9 @@ def train(model, train_loader, optimiser, scheduler):
 
         optimiser.zero_grad()
 
-        X_probs = model(X)
+        X_neg_log_probs = model(X)
 
-        recon_error = torch.sum(-X_probs.log())
+        recon_error = torch.mean(X_neg_log_probs)
         loss = recon_error
 
         loss.backward()
@@ -59,15 +59,14 @@ def test(model, test_loader):
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            X_probs = model(X)
-            X_recon = torch.zeros(X.size()).to(model.device)
+            X_recon = model(X)
+            #X_recon = torch.zeros(X.size()).to(model.device)
 
             '''for x in range(X_recon.shape[2]):
                 for y in range(X_recon.shape[3]):
                     probs = F.softmax(X_probs.unsqueeze(2)[:, :, 0, x, y], dim=-1)
                     X_recon[:, 0, x, y] = torch.multinomial(probs, num_samples=1).squeeze(dim=-1).float() / model.num_levels'''
             
-
             recon_error = F.mse_loss(X_recon, X)
             
             test_res_recon_error += recon_error.item()

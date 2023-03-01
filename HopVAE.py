@@ -134,6 +134,7 @@ class HopVAE(nn.Module):
         self.num_embeddings = config.num_embeddings
         self.embedding_dim = config.embedding_dim
         self.representation_dim = config.representation_dim
+        self.image_size = config.image_size
         self.num_levels = config.num_levels
         self.num_channels = config.num_channels
         self.num_mixtures = config.num_mixtures
@@ -174,13 +175,21 @@ class HopVAE(nn.Module):
         Z_embeddings = Z_embeddings.view(-1, self.representation_dim, self.representation_dim, self.embedding_dim)
         Z_embeddings = Z_embeddings.permute(0, 3, 1, 2).contiguous()
 
-        dist_params = self.decoder(Z_embeddings).view(-1, self.num_mixtures * (1 + self.num_channels * 2))
-        PI, MU, S = torch.split(dist_params,[self.num_mixtures, self.num_mixtures * self.num_channels, self.num_mixtures * self.num_channels], dim=1)
+        dist_params = self.decoder(Z_embeddings).view(-1, self.num_channels * (self.image_size ** 2), self.num_mixtures * (1 + self.num_channels * 2))
+
+        log_scale_min = -32.23619130191664
+        #dist_params = dist_params.permute(0, 2, 1)
+        #dist_params = dist_params.transpose(1, 2)
+
+        # unpack parameters. (B, T, num_mixtures) x 3
+        logit_PI = dist_params[:, :, :self.num_mixtures]
+        MU = dist_params[:, :, self.num_mixtures:2 * self.num_mixtures]
+        log_S = torch.clamp(dist_params[:, :, 2 * self.num_mixtures:3 * self.num_mixtures], min=log_scale_min)
 
         if self.training:
-            X = (X * self.num_levels).long().float()
-            probs = self.discretised_logistic_mixture(PI, MU, S, X)
+            X = X.view(-1, (self.num_channels * self.image_size ** 2), 1)
+            probs = self.discretised_logistic_mixture(logit_PI, MU, log_S, X)
             return probs
         else:
-            sample = self.discretised_logistic_mixture.sample(PI, MU, S)
+            sample = self.discretised_logistic_mixture.sample(logit_PI, MU, log_S)
             return sample
