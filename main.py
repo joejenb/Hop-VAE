@@ -98,7 +98,7 @@ def main():
     model = HopVAE(config, device).to(device)
     model = load_from_checkpoint(model, checkpoint_location)
 
-    optimiser = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=False)
+    optimiser = optim.Adam(model.parameters(), lr=config.learning_rate)
     scheduler = optim.lr_scheduler.ExponentialLR(optimiser, gamma=config.gamma)
 
     wandb.watch(model, log="all")
