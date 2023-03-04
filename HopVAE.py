@@ -152,23 +152,6 @@ class HopVAE(nn.Module):
                             state_pattern_as_static=True
                         )
 
-        self.embedding_to_index = HopfieldLayer(
-                            input_size=config.embedding_dim,                           # R
-                            output_size=config.index_dim,
-                            quantity=config.num_embeddings,                             # W_K
-                            stored_pattern_as_static=True,
-                            state_pattern_as_static=True
-                        )
-        
-        self.index_to_embedding = HopfieldLayer(
-                            input_size=config.index_dim,                           # R
-                            output_size=config.embedding_dim,
-                            quantity=config.num_embeddings,                             # W_K
-                            stored_pattern_as_static=True,
-                            state_pattern_as_static=True
-                        )
-
-
         self.post_vq_conv = nn.Conv2d(in_channels=config.index_dim, 
                                       out_channels=config.index_dim,
                                       kernel_size=1, 
