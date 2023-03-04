@@ -165,13 +165,10 @@ class HopVAE(nn.Module):
         z = self.encoder(x)
         z = self.pre_vq_conv(z)
 
-        print(z.size())
         #64, 64, 8, 8
         z = z.view(-1, self.embedding_dim, self.representation_dim, self.representation_dim)
-        print(z.size())
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
-        print(z.size())
 
         z_embeddings = self.hopfield(z)
 
@@ -179,5 +176,4 @@ class HopVAE(nn.Module):
         z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
 
         x_recon = self.decoder(z_embeddings)
-        print(x_recon.size())
         return x_recon
