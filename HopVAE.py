@@ -56,7 +56,7 @@ class Encoder(nn.Module):
         self.conv_3 = nn.Conv2d(in_channels=num_hiddens,
                                  out_channels=num_hiddens,
                                  kernel_size=3,
-                                 stride=2, padding=1)
+                                 stride=1, padding=1)
 
         self.conv_4 = nn.Conv2d(in_channels=num_hiddens,
                                  out_channels=num_hiddens,
@@ -166,7 +166,9 @@ class HopVAE(nn.Module):
         z = self.pre_vq_conv(z)
 
         print(z.size())
+        #64, 64, 8, 8
         z.view(-1, self.embedding_dim, self.representation_dim, self.representation_dim)
+        print(z.size())
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
         print(z.size())
