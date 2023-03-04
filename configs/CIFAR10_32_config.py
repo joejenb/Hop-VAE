@@ -4,6 +4,7 @@ config["epochs"] = 100             # number of epochs to train (default: 10)
 config["no_cuda"] = False         # disables CUDA training
 config["seed"] = 1265
 config["image_size"] = 32
+config["tile_size"] = 8
 config["log_interval"] = 1     # how many batches to wait before logging training status
 config["learning_rate"] = 1e-3
 config["momentum"] = 0.1

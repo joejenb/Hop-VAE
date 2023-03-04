@@ -106,7 +106,7 @@ def get_data_loaders(config, PATH):
         val_set = torchvision.datasets.CIFAR10(root=PATH, train=False, download=True, transform=transform)
         test_set = torchvision.datasets.CIFAR10(root=PATH, train=False, download=True, transform=transform)
         num_classes = 10
-        config.data_variance = np.var(train_set.data / 255.0)
+        config.data_variance = 1.0
 
     elif config.data_set == "FFHQ":
         transform = transforms.Compose([
