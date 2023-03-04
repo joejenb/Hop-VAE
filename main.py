@@ -27,15 +27,15 @@ def train(model, train_loader, optimiser, scheduler):
         X = X.to(model.device)
         optimiser.zero_grad()
 
-        X_recon, Z_prediction_error = model(X)
+        X_recon = model(X)
 
         recon_error = F.mse_loss(X_recon, X)
-        loss = recon_error + Z_prediction_error
+        loss = recon_error
 
         loss.backward()
         optimiser.step()
         
-        train_res_recon_error += recon_error.item() + Z_prediction_error.item()
+        train_res_recon_error += recon_error.item()
 
     scheduler.step()
     wandb.log({
@@ -61,7 +61,7 @@ def test(model, test_loader):
         for X, _ in test_loader:
             X = X.to(model.device)
 
-            X_recon, _ = model(X)
+            X_recon = model(X)
             recon_error = F.mse_loss(X_recon, X)
             
             test_res_recon_error += recon_error.item()
@@ -109,11 +109,6 @@ def main():
     wandb.watch(model, log="all")
 
     for epoch in range(config.epochs):
-
-        if epoch > config.prior_start and not model.fit_prior:
-
-            model.fit_prior = True
-            optimiser, scheduler = get_prior_optimiser(config, model.prior)
 
         train(model, train_loader, optimiser, scheduler)
 
