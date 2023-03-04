@@ -152,11 +152,6 @@ class HopVAE(nn.Module):
                             state_pattern_as_static=True
                         )
 
-        self.post_vq_conv = nn.Conv2d(in_channels=config.index_dim, 
-                                      out_channels=config.index_dim,
-                                      kernel_size=1, 
-                                      stride=1)
-        
         self.decoder = Decoder(config.embedding_dim,
                         config.num_channels,
                         config.num_hiddens, 
