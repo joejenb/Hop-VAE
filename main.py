@@ -13,7 +13,7 @@ from HopVAE import HopVAE
 
 from utils import get_data_loaders, get_prior_optimiser, load_from_checkpoint, MakeConfig
 
-from configs.ffhq_32_config import config
+from configs.CIFAR10_32_config import config
 
 wandb.init(project="Hop-VAE", config=config)
 config = MakeConfig(config)
