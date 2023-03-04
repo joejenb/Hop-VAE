@@ -100,7 +100,7 @@ class Decoder(nn.Module):
         self.conv_trans_1 = nn.ConvTranspose2d(in_channels=num_hiddens, 
                                                 out_channels=num_hiddens//2,
                                                 kernel_size=3, 
-                                                stride=2, padding=2)
+                                                stride=1, padding=2)
 
         self.conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
                                                 out_channels=num_hiddens//2,
@@ -167,7 +167,7 @@ class HopVAE(nn.Module):
 
         print(z.size())
         #64, 64, 8, 8
-        z.view(-1, self.embedding_dim, self.representation_dim, self.representation_dim)
+        z = z.view(-1, self.embedding_dim, self.representation_dim, self.representation_dim)
         print(z.size())
         z = z.permute(0, 2, 3, 1).contiguous()
         z = z.view(-1, self.representation_dim * self.representation_dim, self.embedding_dim)
@@ -179,5 +179,5 @@ class HopVAE(nn.Module):
         z_embeddings = z_embeddings.permute(0, 3, 1, 2).contiguous()
 
         x_recon = self.decoder(z_embeddings)
-
+        print(x_recon.size())
         return x_recon
