@@ -82,7 +82,9 @@ class CompleteConv1d(nn.Module):
         y = self.propagate(x)
         y_neg = y.clone()
 
+        print("pre_jac")
         xy_grad = jacobian(self.propagate, x).squeeze(dim=0).squeeze(dim=2)
+        print("post_jac")
         xy_grad_reduced = xy_grad.sum(dim=0).sum(dim=1)
 
         _, xy_grad_max_ind = xy_grad_reduced.max(dim=0, keepdim=True)
