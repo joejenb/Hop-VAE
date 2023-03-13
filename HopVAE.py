@@ -55,35 +55,20 @@ class CompleteConv1d(nn.Module):
                         )
         self.q_loss = lambda x, y: ((x - y.detach()) ** 2).sum(dim=1)
 
-    def propagate(self, x, weights_indices=None):
+    def propagate(self, x):
         linear_outs = []
         for layer_idx in range(len(self.linear_layers)):
-            weights = self.linear_layers[layer_idx].state_dict()['weight']
-
-            if weights_indices != None:
-                masked_weights = torch.zeros_like(weights, requires_grad=True)
-                masked_weights = masked_weights.clone()
-
-                for index in range(len(weights_indices)):
-                    filter_num = weights_indices[index]
-                    masked_weights[filter_num, index] = weights[filter_num, index]
-
-                self.linear_layers[layer_idx].state_dict()['weight'] = masked_weights
-
             linear_outs.append(self.linear_layers[layer_idx](x[:, layer_idx, :]))
-            self.linear_layers[layer_idx].state_dict()['weight'] = weights
-
-            weights = self.linear_layers[layer_idx].state_dict()['weight']
 
         linear_outs = torch.stack(linear_outs, dim=1)
 
-        conv_outs = self.conv(linear_outs)
+        #conv_outs = self.conv(linear_outs)
         #conv_outs = conv_outs.permute(0, 2, 1).contiguous()
 
         #q_conv_outs = self.hopfield(conv_outs)
         #q_conv_outs = q_conv_outs.permute(0, 2, 1).contiguous()
 
-        return conv_outs
+        return linear_outs
 
     def forward(self, x):
         #batch_size, in_channels, in_r_dim
@@ -94,15 +79,22 @@ class CompleteConv1d(nn.Module):
         # Subtract this from q_conv_outs
         # batch_num, in_channels, in_r_dim -> (batch_num, out_channels, out_r_dim, in_channels, in_r_dim), (batch_num, out_channels, out_r_dim)
 
+        y = self.propagate(x)
+        y_neg = 0#y.clone()
+        '''
         xy_grad = jacobian(self.propagate, x, create_graph=True).squeeze(dim=0).squeeze(dim=2)
         xy_grad_reduced = xy_grad.sum(dim=0).sum(dim=1)
 
         _, xy_grad_max_ind = xy_grad_reduced.max(dim=0, keepdim=True)
         xy_grad_max_ind = xy_grad_max_ind.squeeze()
 
-        y = self.propagate(x, weights_indices=xy_grad_max_ind)
+        for index in range(len(xy_grad_max_ind)):
+            node_num = xy_grad_max_ind[index]
+            for filter_num in range(x.size(1)):
+                y_neg[0, filter_num, node_num] -= xy_grad[filter_num, node_num, filter_num, index].squeeze() * x[0, filter_num, index]
+        '''
 
-        return y
+        return self.conv(y - y_neg)
 
 class Encoder(nn.Module):
     def __init__(self, in_channels, in_representation_dim, out_representation_dim, num_hiddens, num_residual_layers, num_residual_hiddens):
@@ -120,10 +112,10 @@ class Encoder(nn.Module):
 
 
         self.conv_3 = CompleteConv1d(in_channels=num_hiddens,
-                                 out_channels=num_hiddens,
+                                 out_channels=out_representation_dim,
                                  in_representation_dim=out_representation_dim,
                                  out_representation_dim=out_representation_dim)
-
+        '''
         self.conv_4 = CompleteConv1d(in_channels=num_hiddens,
                                  out_channels=num_hiddens,
                                  in_representation_dim=out_representation_dim,
@@ -135,6 +127,7 @@ class Encoder(nn.Module):
                                              num_hiddens=num_hiddens,
                                              num_residual_layers=num_residual_layers,
                                              num_residual_hiddens=num_residual_hiddens)
+        '''
 
     def forward(self, inputs):
         x = self.conv_1(inputs)
@@ -146,9 +139,11 @@ class Encoder(nn.Module):
         x = self.conv_3(x)
         x = F.relu(x)
 
-        x = self.conv_4(x)
+        #x = self.conv_4(x)
         #Should have 2048 units -> embedding_dim * repres_dim^2
-        return self.residual_stack(x)
+        #return self.residual_stack(x)
+
+        return x
 
 class Decoder(nn.Module):
     def __init__(self, in_channels, out_channels, in_representation_dim, out_representation_dim, num_hiddens, num_residual_layers, num_residual_hiddens):
@@ -159,6 +154,7 @@ class Decoder(nn.Module):
                                  in_representation_dim=in_representation_dim,
                                  out_representation_dim=in_representation_dim)
 
+        '''
         self.residual_stack = ResidualStack(in_channels=num_hiddens,
                                              representation_dim=in_representation_dim,
                                              num_hiddens=num_hiddens,
@@ -169,9 +165,10 @@ class Decoder(nn.Module):
                                                 out_channels=num_hiddens//2,
                                                 in_representation_dim=in_representation_dim,
                                                 out_representation_dim=in_representation_dim)
+        '''
 
 
-        self.conv_trans_2 = CompleteConv1d(in_channels=num_hiddens//2, 
+        self.conv_trans_2 = CompleteConv1d(in_channels=num_hiddens, 
                                                 out_channels=num_hiddens//2,
                                                 in_representation_dim=in_representation_dim,
                                                 out_representation_dim=2*in_representation_dim)
@@ -186,9 +183,9 @@ class Decoder(nn.Module):
     def forward(self, inputs):
         x = self.conv_1(inputs)
         
-        x = self.residual_stack(x)
+        #x = self.residual_stack(x)
         
-        x = self.conv_trans_1(x)
+        #x = self.conv_trans_1(x)
         x = F.relu(x)
 
         x = self.conv_trans_2(x)

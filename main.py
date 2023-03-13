@@ -23,11 +23,7 @@ def train(model, train_loader, optimiser, scheduler):
     model.train()
     train_res_recon_error = 0
 
-    iter_num = 0
     for X, _ in train_loader:
-        if iter_num > 1000:
-            break
-        iter_num += 1
         X = X.to(model.device)
         optimiser.zero_grad()
 
@@ -43,7 +39,7 @@ def train(model, train_loader, optimiser, scheduler):
 
     scheduler.step()
     wandb.log({
-        "Train Reconstruction Error": (train_res_recon_error) / 1000#len(train_loader.dataset)
+        "Train Reconstruction Error": (train_res_recon_error) / len(train_loader)
     })
 
 
@@ -53,14 +49,8 @@ def test(model, test_loader):
 
     test_res_recon_error = 0
 
-    iter_num = 0
     with torch.no_grad():
         for X, _ in test_loader:
-
-            if iter_num > 1000:
-                break
-
-            iter_num += 1
             X = X.to(model.device)
 
             X_recon = model(X)
@@ -74,7 +64,7 @@ def test(model, test_loader):
     wandb.log({
         "Test Inputs": example_images,
         "Test Reconstruction": example_reconstructions,
-        "Test Reconstruction Error": test_res_recon_error / 1000# len(test_loader.dataset)
+        "Test Reconstruction Error": test_res_recon_error / len(test_loader)
         })
 
 
