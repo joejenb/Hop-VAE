@@ -62,13 +62,13 @@ class CompleteConv1d(nn.Module):
 
         linear_outs = torch.stack(linear_outs, dim=1)
 
-        #conv_outs = self.conv(linear_outs)
-        #conv_outs = conv_outs.permute(0, 2, 1).contiguous()
+        conv_outs = self.conv(linear_outs)
+        conv_outs = conv_outs.permute(0, 2, 1).contiguous()
 
-        #q_conv_outs = self.hopfield(conv_outs)
-        #q_conv_outs = q_conv_outs.permute(0, 2, 1).contiguous()
+        q_conv_outs = self.hopfield(conv_outs)
+        q_conv_outs = q_conv_outs.permute(0, 2, 1).contiguous()
 
-        return linear_outs
+        return q_conv_outs
 
     def forward(self, x):
         #batch_size, in_channels, in_r_dim
@@ -80,7 +80,7 @@ class CompleteConv1d(nn.Module):
         # batch_num, in_channels, in_r_dim -> (batch_num, out_channels, out_r_dim, in_channels, in_r_dim), (batch_num, out_channels, out_r_dim)
 
         y = self.propagate(x)
-        y_neg = y.clone()
+        '''y_neg = y.clone()
 
         xy_grad = jacobian(self.propagate, x).squeeze(dim=0).squeeze(dim=2)
         xy_grad_reduced = xy_grad.sum(dim=0).sum(dim=1)
@@ -94,6 +94,8 @@ class CompleteConv1d(nn.Module):
                 y_neg[0, filter_num, node_num] -= xy_grad[filter_num, node_num, filter_num, index].squeeze() * x[0, filter_num, index]
 
         return self.conv(y - y_neg)
+        '''
+        return y
 
 class Encoder(nn.Module):
     def __init__(self, in_channels, in_representation_dim, out_representation_dim, num_hiddens, num_residual_layers, num_residual_hiddens):
