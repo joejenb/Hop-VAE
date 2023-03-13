@@ -43,10 +43,9 @@ class ResidualStack(nn.Module):
         return F.relu(x)
 
 class CompleteConv1d(nn.Module):
-    def __init__(self, in_channels, out_channels, in_representation_dim, out_representation_dim, num_embeddings=512):
+    def __init__(self, in_channels, out_channels, kernel_size, num_embeddings=512):
         super(CompleteConv1d, self).__init__()
-        self.linear_layers = nn.ModuleList([nn.Linear(in_representation_dim, out_representation_dim) for _ in range(in_channels)])
-        self.conv = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1)
+        self.conv = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=1)
         self.hopfield = HopfieldLayer(
                             input_size=out_channels,                           # R
                             quantity=num_embeddings,                             # W_K
@@ -56,19 +55,14 @@ class CompleteConv1d(nn.Module):
         self.q_loss = lambda x, y: ((x - y.detach()) ** 2).sum(dim=1)
 
     def propagate(self, x):
-        linear_outs = []
-        for layer_idx in range(len(self.linear_layers)):
-            linear_outs.append(self.linear_layers[layer_idx](x[:, layer_idx, :]))
 
-        linear_outs = torch.stack(linear_outs, dim=1)
+        conv_outs = self.conv(x)
+        #conv_outs = conv_outs.permute(0, 2, 1).contiguous()
 
-        conv_outs = self.conv(linear_outs)
-        conv_outs = conv_outs.permute(0, 2, 1).contiguous()
+        #q_conv_outs = self.hopfield(conv_outs)
+        #q_conv_outs = q_conv_outs.permute(0, 2, 1).contiguous()
 
-        q_conv_outs = self.hopfield(conv_outs)
-        q_conv_outs = q_conv_outs.permute(0, 2, 1).contiguous()
-
-        return q_conv_outs
+        return conv_outs
 
     def forward(self, x):
         #batch_size, in_channels, in_r_dim
@@ -103,26 +97,22 @@ class Encoder(nn.Module):
 
         self.conv_1 = CompleteConv1d(in_channels=in_channels,
                                  out_channels=num_hiddens//2,
-                                 in_representation_dim=in_representation_dim,
-                                 out_representation_dim=in_representation_dim // 2)
+                                 kernel_size=200)
 
         self.conv_2 = CompleteConv1d(in_channels=num_hiddens//2,
                                  out_channels=num_hiddens,
-                                 in_representation_dim=in_representation_dim // 2,
-                                 out_representation_dim=out_representation_dim)
+                                 kernel_size=200)
 
 
         self.conv_3 = CompleteConv1d(in_channels=num_hiddens,
-                                 out_channels=out_representation_dim,
-                                 in_representation_dim=out_representation_dim,
-                                 out_representation_dim=out_representation_dim)
-        '''
+                                 out_channels=num_hiddens,
+                                 kernel_size=200)
+
         self.conv_4 = CompleteConv1d(in_channels=num_hiddens,
                                  out_channels=num_hiddens,
-                                 in_representation_dim=out_representation_dim,
-                                 out_representation_dim=out_representation_dim)
+                                 kernel_size=124)
 
-
+        '''
         self.residual_stack = ResidualStack(in_channels=num_hiddens,
                                              representation_dim=out_representation_dim,
                                              num_hiddens=num_hiddens,
@@ -140,7 +130,7 @@ class Encoder(nn.Module):
         x = self.conv_3(x)
         x = F.relu(x)
 
-        #x = self.conv_4(x)
+        x = self.conv_4(x)
         #Should have 2048 units -> embedding_dim * repres_dim^2
         #return self.residual_stack(x)
 
@@ -159,32 +149,31 @@ class Decoder(nn.Module):
                                              num_hiddens=num_hiddens,
                                              num_residual_layers=num_residual_layers,
                                              num_residual_hiddens=num_residual_hiddens)
-        
-        self.conv_trans_1 = CompleteConv1d(in_channels=num_hiddens, 
-                                                out_channels=num_hiddens//2,
-                                                in_representation_dim=in_representation_dim,
-                                                out_representation_dim=in_representation_dim)
         '''
-
-
-        self.conv_trans_2 = nn.ConvTranspose1d(in_channels=num_hiddens, 
+        
+        self.conv_trans_1 = nn.ConvTranspose1d(in_channels=num_hiddens, 
                                                 out_channels=num_hiddens//2,
-                                                kernel_size=400, stride=1, padding=10)
+                                                kernel_size=200, stride=1, padding=10)
+
+        self.conv_trans_2 = nn.ConvTranspose1d(in_channels=num_hiddens//2, 
+                                                out_channels=num_hiddens//2,
+                                                kernel_size=220, stride=1, padding=10)
 
 
 
         self.conv_trans_3 = nn.ConvTranspose1d(in_channels=num_hiddens//2, 
                                                 out_channels=out_channels,
-                                                kernel_size=364, stride=1, padding=10)
+                                                kernel_size=365, stride=1, padding=10)
 
 
 
     def forward(self, inputs):
         x = self.conv_1(inputs)
+        x = F.relu(x)
         
         #x = self.residual_stack(x)
         
-        #x = self.conv_trans_1(x)
+        x = self.conv_trans_1(x)
         x = F.relu(x)
 
         x = self.conv_trans_2(x)
@@ -210,8 +199,7 @@ class HopVAE(nn.Module):
 
         self.pre_vq_conv = CompleteConv1d(in_channels=config.num_hiddens, 
                                       out_channels=config.embedding_dim,
-                                      in_representation_dim=config.representation_dim**2,
-                                      out_representation_dim=config.representation_dim**2)
+                                      kernel_size=1)
 
         self.hopfield = HopfieldLayer(
                             input_size=config.embedding_dim,                           # R
