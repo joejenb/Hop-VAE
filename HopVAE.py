@@ -150,11 +150,9 @@ class Decoder(nn.Module):
     def __init__(self, in_channels, out_channels, in_representation_dim, out_representation_dim, num_hiddens, num_residual_layers, num_residual_hiddens):
         super(Decoder, self).__init__()
         
-        self.conv_1 = CompleteConv1d(in_channels=in_channels,
+        self.conv_1 = nn.Conv1d(in_channels=in_channels,
                                  out_channels=num_hiddens,
-                                 in_representation_dim=in_representation_dim,
-                                 out_representation_dim=in_representation_dim)
-
+                                 kernel_size=3, stride=1)
         '''
         self.residual_stack = ResidualStack(in_channels=num_hiddens,
                                              representation_dim=in_representation_dim,
@@ -169,16 +167,16 @@ class Decoder(nn.Module):
         '''
 
 
-        self.conv_trans_2 = CompleteConv1d(in_channels=num_hiddens, 
+        self.conv_trans_2 = nn.Conv1d(in_channels=num_hiddens, 
                                                 out_channels=num_hiddens//2,
-                                                in_representation_dim=in_representation_dim,
-                                                out_representation_dim=2*in_representation_dim)
+                                                kernel_size=3, stride=1)
 
 
-        self.conv_trans_3 = CompleteConv1d(in_channels=num_hiddens//2, 
+
+        self.conv_trans_3 = nn.Conv1d(in_channels=num_hiddens//2, 
                                                 out_channels=out_channels,
-                                                in_representation_dim=2*in_representation_dim,
-                                                out_representation_dim=out_representation_dim)
+                                                kernel_size=3, stride=1)
+
 
 
     def forward(self, inputs):
