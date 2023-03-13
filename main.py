@@ -25,8 +25,7 @@ def train(model, train_loader, optimiser, scheduler):
 
     iter_num = 0
     for X, _ in train_loader:
-        print(iter_num)
-        if iter_num > 100:
+        if iter_num > 10:
             break
         
         iter_num += 1
@@ -43,7 +42,6 @@ def train(model, train_loader, optimiser, scheduler):
         
         train_res_recon_error += recon_error.item()
 
-    print("Trained")
     scheduler.step()
     wandb.log({
         "Train Reconstruction Error": (train_res_recon_error) / len(train_loader)
@@ -59,7 +57,7 @@ def test(model, test_loader):
     #with torch.no_grad():
     iter_num = 0
     for X, _ in test_loader:
-        if iter_num > 100:
+        if iter_num > 10:
             break
 
         iter_num += 1
