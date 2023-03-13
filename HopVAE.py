@@ -169,13 +169,13 @@ class Decoder(nn.Module):
 
         self.conv_trans_2 = nn.ConvTranspose1d(in_channels=num_hiddens, 
                                                 out_channels=num_hiddens//2,
-                                                kernel_size=15, stride=1)
+                                                kernel_size=150, stride=1)
 
 
 
         self.conv_trans_3 = nn.ConvTranspose1d(in_channels=num_hiddens//2, 
                                                 out_channels=out_channels,
-                                                kernel_size=15, stride=1)
+                                                kernel_size=150, stride=1)
 
 
 
