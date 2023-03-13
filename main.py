@@ -23,7 +23,12 @@ def train(model, train_loader, optimiser, scheduler):
     model.train()
     train_res_recon_error = 0
 
+    iter_num = 0
     for X, _ in train_loader:
+        if iter_num > 100:
+            break
+        
+        iter_num += 1
         X = X.to(model.device)
         optimiser.zero_grad()
 
@@ -50,7 +55,12 @@ def test(model, test_loader):
     test_res_recon_error = 0
 
     with torch.no_grad():
+        iter_num = 0
         for X, _ in test_loader:
+            if iter_num > 100:
+                break
+
+            iter_num += 1
             X = X.to(model.device)
 
             X_recon = model(X)
