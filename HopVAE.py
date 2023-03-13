@@ -80,8 +80,9 @@ class CompleteConv1d(nn.Module):
         # batch_num, in_channels, in_r_dim -> (batch_num, out_channels, out_r_dim, in_channels, in_r_dim), (batch_num, out_channels, out_r_dim)
 
         y = self.propagate(x)
-        y_neg = y.clone()
+        y_neg = 0#y.clone()
 
+        '''
         xy_grad = jacobian(self.propagate, x, create_graph=True).squeeze(dim=0).squeeze(dim=2)
         xy_grad_reduced = xy_grad.sum(dim=0).sum(dim=1)
 
@@ -92,6 +93,7 @@ class CompleteConv1d(nn.Module):
             node_num = xy_grad_max_ind[index]
             for filter_num in range(x.size(1)):
                 y_neg[0, filter_num, node_num] -= xy_grad[filter_num, node_num, filter_num, index].squeeze() * x[0, filter_num, index]
+        '''
 
         return self.conv(y - y_neg)
 
