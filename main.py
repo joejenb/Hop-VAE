@@ -41,7 +41,7 @@ def train(model, train_loader, optimiser, scheduler):
         optimiser.step()
         
         train_res_recon_error += recon_error.item()
-
+    print("Trained")
     scheduler.step()
     wandb.log({
         "Train Reconstruction Error": (train_res_recon_error) / len(train_loader)
@@ -54,22 +54,22 @@ def test(model, test_loader):
 
     test_res_recon_error = 0
 
-    with torch.no_grad():
-        iter_num = 0
-        for X, _ in test_loader:
-            if iter_num > 100:
-                break
+    #with torch.no_grad():
+    iter_num = 0
+    for X, _ in test_loader:
+        if iter_num > 100:
+            break
 
-            iter_num += 1
-            X = X.to(model.device)
+        iter_num += 1
+        X = X.to(model.device)
 
-            X_recon = model(X)
-            recon_error = F.mse_loss(X_recon, X)
-            
-            test_res_recon_error += recon_error.item()
+        X_recon = model(X)
+        recon_error = F.mse_loss(X_recon, X)
+        
+        test_res_recon_error += recon_error.item()
 
-        example_images = [wandb.Image(img) for img in X]
-        example_reconstructions = [wandb.Image(recon_img) for recon_img in X_recon]
+    example_images = [wandb.Image(img) for img in X]
+    example_reconstructions = [wandb.Image(recon_img) for recon_img in X_recon]
 
     wandb.log({
         "Test Inputs": example_images,
