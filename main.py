@@ -13,7 +13,7 @@ from HopVAE import HopVAE
 
 from utils import get_data_loaders, get_prior_optimiser, load_from_checkpoint, MakeConfig
 
-from configs.mnist_28_config import config
+from configs.cifar10_32_config import config
 
 wandb.init(project="Hop-VAE", config=config)
 config = MakeConfig(config)
@@ -23,8 +23,13 @@ def train(model, train_loader, optimiser, scheduler):
     model.train()
     train_res_recon_error = 0
 
+    iter_num = 0
     for X, _ in train_loader:
+        print(iter_num)
+        if iter_num > 10:#500
+            break
         
+        iter_num += 1
         X = X.to(model.device)
         optimiser.zero_grad()
 
@@ -51,7 +56,13 @@ def test(model, test_loader):
     test_res_recon_error = 0
 
     #with torch.no_grad():
+    iter_num = 0
     for X, _ in test_loader:
+        print(iter_num)
+        if iter_num > 10:#500
+            break
+
+        iter_num += 1
         X = X.to(model.device)
 
         X_recon = model(X)
@@ -68,6 +79,8 @@ def test(model, test_loader):
         "Test Reconstruction Error": test_res_recon_error / len(test_loader)
         })
 
+num_embeddings = [32, 64, 128, 256, 512, 768, 1024, 1280, 1536, 1792, 2048, 3072, 4096, 5120]
+num_embeddings.reverse()
 
 def main():
     parser = argparse.ArgumentParser()
