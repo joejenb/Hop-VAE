@@ -73,6 +73,8 @@ class QuantConv2d(nn.Module):
         y = self.conv_spatial(x)
 
         if self.quantise:
+
+            # Quantise and take error
             y_quant = self.q(y)
             y_quant_neg = y_quant.clone()
             y_quant_error = self.q_loss(y, y_quant)
@@ -80,14 +82,6 @@ class QuantConv2d(nn.Module):
             batch_size = x.shape[0]
             in_repres_dim = x.shape[2]
             out_repres_dim = y.shape[2]
-
-            #Is grad same for all in x?
-            #xy_grad = torch.autograd.grad(y_quant_error[0, 0, 0].sum(), x)
-            #print(xy_grad, y_quant_error.shape)
-
-            '''x = x.view(batch_size, self.in_channels, -1)
-            y_quant_error = y_quant_error.view(batch_size, in_repres_dim ** 2)
-            y_quant_neg = y_quant_neg.view(batch_size, self.in_channels, -1)'''
 
             for batch_num in range(batch_size):
                 min_grad, min_vec, min_loc_x, min_loc_y = torch.Tensor([float("inf")]), None, None, None
@@ -99,45 +93,29 @@ class QuantConv2d(nn.Module):
                         for out_loc_x in range(out_repres_dim):
                             for out_loc_y in range(out_repres_dim):
                                 out_vec = y_quant_error[batch_num, out_loc_y, out_loc_x]
+                                y_vec = y[batch_num, :, out_loc_y, out_loc_x]
 
                                 #Surely want min -> negative gradient means -> larger vector is i.e 0 or 1 -> lower mse is
-                                xy_grad = torch.autograd.grad(outputs=out_vec, inputs=x, retain_graph=True, create_graph=True)
-                                in_vec_grad = xy_grad[0][batch_num, :, in_loc_y, in_loc_x]
-                                grad_sum = in_vec_grad.sum()
+                                y_out_grad = torch.autograd.grad(outputs=out_vec, inputs=y, retain_graph=True, create_graph=True)[0]
+                                x_y_grad = torch.zeros_like(y_vec)
+
+                                for z_loc in range(self.in_channels):
+                                    x_grad = torch.autograd.grad(outputs=y_vec[z_loc], inputs=x, retain_graph=True, create_graph=True)[0]
+                                    x_y_grad[z_loc] = x_grad[batch_num, z_loc, in_loc_y, in_loc_x]
+
+                                x_out_grad = x_y_grad * y_out_grad[batch_num, :, in_loc_y, in_loc_x]
+                                grad_sum = x_out_grad.sum()
 
                                 if grad_sum < min_grad:
                                     min_grad = grad_sum
-                                    min_vec = in_vec * in_vec_grad
+                                    min_vec = in_vec * x_y_grad
                                     min_loc_x = out_loc_x
                                     min_loc_y = out_loc_y
 
                 y_quant_neg[batch_num, :, min_loc_y, min_loc_x] -= min_vec
             y_quant_neg = y_quant_neg.view_as(y_quant)
-            # 32, num_c, or_dim, or_dim, 32, num_c, ir_dim, ir_dim
-            '''print("pre_jac")
-            x.retain_grad()
-            xy_grad = y_quant_error.backward()
-            print(xy_grad.size())
-            print("post_jac")
-            #32, or_dim, or_dim, 32, ir_dim, ir_dim
-            xy_grad_reduced = xy_grad.sum(dim=1).sum(dim=4)
-            #32, or_dim * or_dim, 32, ir_dim * ir_dim
-            xy_grad_reduced = xy_grad_reduced.view(batch_size, out_repres_dim ** 2, batch_size, in_repres_dim ** 2) 
-
-
-            for batch_num in range(batch_size):
-                #or_dim * or_dim, ir_dim * ir_dim
-                batch_grad = xy_grad_reduced[batch_num, :, batch_num, :].squeeze(dim=0).squeeze(dim=1)
-                _, batch_grad_max_ind = batch_grad.max(dim=0, keepdim=True)
-                batch_grad_max_ind = batch_grad_max_ind.squeeze()
-                for index in range(len(batch_grad_max_ind)):
-                    node_num = batch_grad_max_ind[index]
-                    for filter_num in range(self.in_channels):
-                        y_quant_neg[0, filter_num, node_num] -= batch_grad[filter_num, node_num, filter_num, index].squeeze() * x[0, filter_num, index]
-
-            y_quant_neg = y_quant_neg.view_as(y_quant)
-            '''
-            return self.conv_dim(y_quant - y_quant_neg)
+            y_masked = y_quant - y_quant_neg
+            return self.conv_dim(self.q(y_masked))
 
         return self.conv_dim(y)
 
