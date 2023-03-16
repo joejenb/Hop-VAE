@@ -26,7 +26,7 @@ def train(model, train_loader, optimiser, scheduler):
     iter_num = 0
     for X, _ in train_loader:
         print(iter_num)
-        if iter_num > 500:
+        if iter_num > 5:
             break
         
         iter_num += 1
@@ -59,7 +59,7 @@ def test(model, test_loader):
     iter_num = 0
     for X, _ in test_loader:
         print(iter_num)
-        if iter_num > 500:
+        if iter_num > 5:
             break
 
         iter_num += 1

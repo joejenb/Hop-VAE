@@ -68,21 +68,54 @@ class QuantConv2d(nn.Module):
         y_quant = embeddings.permute(0, 3, 1, 2).contiguous()
 
         return y_quant
-    
+
+    def q_error(self, x):
+        y = self.conv_spatial(x)
+        y_quant = self.q(y)
+        y_quant_error = self.q_loss(y, y_quant)
+        return y_quant_error 
+
     def forward(self, x):
         y = self.conv_spatial(x)
 
         if self.quantise:
 
-            # Quantise and take error
-            y_quant = self.q(y)
-            y_quant_neg = y_quant.clone()
-            y_quant_error = self.q_loss(y, y_quant)
-
             batch_size = x.shape[0]
             in_repres_dim = x.shape[2]
             out_repres_dim = y.shape[2]
 
+            #batch_num, 1, out_repres_dim, out_repres_dim, batch_size, in_channels, in_repres_dim, in_repres_dim
+            e_x_jacob = jacobian(self.q_error, x, create_graph=True)
+
+            #batch_num, in_channels, out_repres_dim, out_repres_dim, batch_size, in_channels, in_repres_dim, in_repres_dim
+            x_y_jacob = jacobian(self.conv_spatial, x, create_graph=True)
+
+            x = x.view(batch_size, self.in_channels, -1)
+            y_masked = torch.zeros_like(y, requires_grad=True).view(batch_size, self.in_channels, -1)
+            y_masked = y_masked.clone()
+
+            for batch_num in range(batch_size):
+
+                #out_repres_dim, out_repres_dim, in_channels, in_repres_dim, in_repres_dim
+                e_x_grad = e_x_jacob[batch_num, :, :, batch_num, :, :, :].squeeze()
+
+                #out_repres_dim * out_repres_dim, in_repres_dim * in_repres_dim
+                e_x_total = e_x_grad.sum(dim=2).view(out_repres_dim ** 2, in_repres_dim ** 2)
+
+                #in_repres_dim * in_repres_dim
+                _, e_x_max_ind = torch.max(e_x_total, dim=0)
+
+                #in_channels, out_repres_dim, out_repres_dim, in_channels, in_repres_dim, in_repres_dim
+                x_y_grad = x_y_jacob[batch_num, :, :, :, batch_num, :, :, :].squeeze()
+
+                #in_channels, out_repres_dim * out_repres_dim, in_channels, in_repres_dim * in_repres_dim
+                x_y_grad = x_y_grad.view(self.in_channels, out_repres_dim ** 2, self.in_channels, in_repres_dim ** 2)
+                
+                for ind in range(self.in_channels):
+                    max_ind = e_x_max_ind[ind]
+                    y_masked[batch_num, :, max_ind] += x[batch_num, :, ind].matmul(x_y_grad[:, max_ind, :, ind].T)
+
+            '''
             for batch_num in range(batch_size):
                 min_grad, min_vec, min_loc_x, min_loc_y = torch.Tensor([float("inf")]), None, None, None
 
@@ -113,9 +146,8 @@ class QuantConv2d(nn.Module):
                                     min_loc_y = out_loc_y
 
                 y_quant_neg[batch_num, :, min_loc_y, min_loc_x] -= min_vec
-            y_quant_neg = y_quant_neg.view_as(y_quant)
-            y_masked = y_quant - y_quant_neg
-            return self.conv_dim(self.q(y_masked))
+            '''
+            return self.conv_dim(self.q(y_masked.view_as(y)))
 
         return self.conv_dim(y)
 
