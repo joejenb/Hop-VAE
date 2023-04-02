@@ -67,25 +67,14 @@ class Block1(nn.Module):
                                  kernel_size=4,
                                  stride=2, padding=1)
         
-        self.e_q = nn.ConvTranspose2d(in_channels=out_channels, 
-                                                out_channels=self.out_repres_dim * self.out_repres_dim * out_channels,
-                                                kernel_size=3, 
-                                                stride=1, padding=1)
-
-        self.q_z_2 = nn.ConvTranspose2d(in_channels=out_channels, 
-                                                out_channels=out_channels,
-                                                kernel_size=3, 
-                                                stride=1, padding=1)
-
-        self.q_z_1 = nn.ConvTranspose2d(in_channels=out_channels, 
-                                                out_channels=out_channels//2,
-                                                kernel_size=4, 
-                                                stride=2, padding=1)
-        #
-        self.q_x = nn.ConvTranspose2d(in_channels=out_channels//2, 
-                                                out_channels= out_channels * self.out_repres_dim * self.out_repres_dim * in_channels,
-                                                kernel_size=4, 
-                                                stride=2, padding=1)
+    def propagate(self, x):
+        y = self.conv_1(x)
+        y = F.relu(y)
+        
+        y = self.conv_2(y)
+        y = F.relu(y)
+        
+        return y
 
     def forward(self, x):
         batch_size = x.shape[0]
@@ -107,7 +96,6 @@ class Block1(nn.Module):
         z_q = z_q.permute(0, 3, 1, 2).contiguous()
 
         q_error = self.q_loss(z_2, z_q)
-        #print("q_error", q_error.shape)
 
         q_x_jacob = jacobian(self.propagate, x, create_graph=True)
         '''
@@ -146,41 +134,15 @@ class Block1(nn.Module):
         jacob_mask = torch.where(e_x_jacob_sum < e_x_jacob_max, 0.0, 1.0).expand_as(q_x_jacob)
         q_x_jacob_masked = torch.where(jacob_mask == 1.0, q_x_jacob, 0.0).permute(0, 3, 4, 1, 2).contiguous()
         '''
-        q_x_jacob_masked = q_x_jacob.permute(0, 3, 4, 1, 2).contiguous()
+        q_x_jacob_masked = q_x_jacob.sum(dim=0).permute(3, 4, 5, 6, 0, 1, 2).contiguous()
 
         #z_q_masked = x.matmul(q_x_jacob_masked)
-        z_q_masked = torch.einsum('abc,abcde->ade', x.view(batch_size, self.in_channels, self.in_repres_dim ** 2), q_x_jacob_masked)
-        z_q_masked = z_q_masked.permute(0, 2, 1).contiguous()
-        z_q_masked = self.hopfield(z_q_masked)
-        z_q_masked = z_q_masked.permute(0, 2, 1).contiguous()
+        z_q_masked = torch.einsum('abcd,abcdefg->aefg', x, q_x_jacob_masked)
+        #z_q_masked = z_q_masked.permute(0, 2, 3, 1).contiguous()
+        #z_q_masked = self.hopfield(z_q_masked).
+        #z_q_masked = z_q_masked.permute(0, 2, 1).contiguous()
 
-        return z_q_masked.view(batch_size, self.out_channels, self.out_repres_dim, self.out_repres_dim)
-
-        '''z_q_masked = torch.zeros_like(z_q, requires_grad=True).view(batch_size, self.out_channels, -1)
-        # Use scatter on indices like in vq-vae to fill zeros tensor with only single output tensor for each input tensor
-        for batch_num in range(batch_size):
-
-            #out_repres_dim, out_repres_dim, in_channels, in_repres_dim, in_repres_dim
-            e_x_grad = e_x_jacob[batch_num, :, :, :, :, :].sum(dim=0).squeeze()
-
-            #out_repres_dim * out_repres_dim, in_repres_dim * in_repres_dim
-            e_x_total = e_x_grad.sum(dim=2).view(out_repres_dim ** 2, in_repres_dim ** 2)
-
-            #in_repres_dim * in_repres_dim
-            _, e_x_max_ind = torch.min(e_x_total, dim=0)
-
-            #out_channels, out_repres_dim, out_repres_dim, in_channels, in_repres_dim, in_repres_dim
-            q_x_grad = q_x_jacob[batch_num, :, :, :, :, :, :].squeeze()
-
-            #out_channels, out_repres_dim * out_repres_dim, in_channels, in_repres_dim * in_repres_dim
-            q_x_grad = q_x_grad.view(self.out_channels, out_repres_dim ** 2, self.in_channels, in_repres_dim ** 2)
-            
-            for ind in range(in_repres_dim ** 2):
-                max_ind = e_x_max_ind[ind]
-                z_q_masked[batch_num, :, max_ind] += x[batch_num, :, ind].matmul(q_x_grad[:, max_ind, :, ind].T)
-
-        return self.q(z_q_masked.view_as(z_q))
-        '''
+        return z_q_masked
 
 class Block2(nn.Module):
     def __init__(self, in_channels, out_channels, num_residual_layers, num_residual_hiddens, num_embeddings=512):
