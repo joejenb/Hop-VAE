@@ -1,5 +1,5 @@
 config = {}
-config["batch_size"] = 32          # input batch size for training (default: 64)
+config["batch_size"] = 4          # input batch size for training (default: 64)
 config["epochs"] = 100             # number of epochs to train (default: 10)
 config["no_cuda"] = False         # disables CUDA training
 config["seed"] = 1265
