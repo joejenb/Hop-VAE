@@ -25,9 +25,9 @@ def train(model, train_loader, optimiser, scheduler):
 
     iter_num = 0
     for X, _ in train_loader:
-        print(iter_num)
         if iter_num > 10:
             break
+        print(iter_num)
         
         iter_num += 1
         X = X.to(model.device)
@@ -58,9 +58,9 @@ def test(model, test_loader):
     #with torch.no_grad():
     iter_num = 0
     for X, _ in test_loader:
-        print(iter_num)
         if iter_num > 0:
             break
+        print(iter_num)
 
         iter_num += 1
         X = X.to(model.device)
@@ -109,7 +109,7 @@ def main():
         train(model, train_loader, optimiser, scheduler)
 
         if not epoch % 1:
-            test(model, test_loader)
+            test(model, train_loader)
 
         if not epoch % 5:
             torch.save(model.state_dict(), output_location)

@@ -67,7 +67,7 @@ class Block1(nn.Module):
                                  kernel_size=4,
                                  stride=2, padding=1)
         
-    def propagate(self, x):
+    def x_z_2(self, x):
         y = self.conv_1(x)
         y = F.relu(y)
         
@@ -76,17 +76,7 @@ class Block1(nn.Module):
         
         return y
 
-    def forward(self, x):
-        batch_size = x.shape[0]
-
-        z_1 = self.conv_1(x)
-        z_1 = F.relu(z_1)
-        #print("z_1", z_1.shape)
-
-        z_2 = self.conv_2(z_1)
-        z_2 = F.relu(z_2)
-        #print("z_2", z_2.shape)
-
+    def z_2_q(self, z_2):
         z_2_shape = z_2.shape
         z_q = z_2.permute(0, 2, 3, 1).contiguous()
         z_q = z_q.view(-1, z_2_shape[2] * z_2_shape[3], z_2_shape[1])
@@ -94,55 +84,40 @@ class Block1(nn.Module):
         z_q = self.hopfield(z_q)
         z_q = z_q.view(-1, z_2_shape[2], z_2_shape[3], z_2_shape[1])
         z_q = z_q.permute(0, 3, 1, 2).contiguous()
+        return z_q
 
-        q_error = self.q_loss(z_2, z_q)
+    def z_2_e(self, z_2):
+        return self.q_loss(z_2, self.z_2_q(z_2))
 
-        q_x_jacob = jacobian(self.propagate, x, create_graph=True)
-        '''
-        # batch_size, 1, out_repres_dim ** 2, out_channels, out_repres_dim ** 2
-        e_q_jacob = self.e_q(q_error)
-        e_q_jacob = e_q_jacob.view(batch_size, 1, self.out_repres_dim ** 2, self.out_channels, self.out_repres_dim ** 2)
-        #print("e_q_jacob", e_q_jacob.shape)
+    def forward(self, x):
+        batch_size = x.shape[0]
 
-        q_z_2_jacob = self.q_z_2(z_q)
-        q_z_2_jacob = F.relu(q_z_2_jacob)
-        #print("q_z_2", q_z_2_jacob.shape)
+        z_2 = self.x_z_2(x)
 
-        q_z_1_jacob = self.q_z_1(q_z_2_jacob + z_2)
-        q_z_1_jacob = F.relu(q_z_1_jacob)
-        #print("q_z_1", q_z_1_jacob.shape)
+        z_2_x_jacob = jacobian(self.x_z_2, x, create_graph=True)
+        e_z_2_jacob = jacobian(self.z_2_e, z_2, create_graph=True)
 
-        # batch_size, out_channels, out_repres_dim ** 2, in_channels, in_repres_dim ** 2
-        q_x_jacob = self.q_x(q_z_1_jacob + z_1)
-        q_x_jacob = q_x_jacob.view(batch_size, self.out_channels, self.out_repres_dim ** 2, self.in_channels, self.in_repres_dim ** 2)
-        #print("q_x_jacob", q_x_jacob.shape)
+        z_2_x_jacob = z_2_x_jacob.sum(dim=0, keepdim=True)[0].permute(3, 0, 1, 2, 4, 5, 6).contiguous()
+        e_z_2_jacob = e_z_2_jacob.sum(dim=0, keepdim=True)[0].permute(3, 0, 1, 2, 4, 5, 6).contiguous()
 
         #So want to matmul along the last/first three dimensions
         # batch_size, 1, out_repres_dim ** 2, in_channels, in_repres_dim ** 2
-        #e_x_jacob = e_q_jacob.matmul(q_x_jacob)
-        e_x_jacob = torch.einsum('abcde,adefg->abcfg', e_q_jacob, q_x_jacob)
-        #print("e_x", e_x_jacob.shape)
+        e_x_jacob = torch.einsum('abcdefg,aefghij->abcdhij', e_z_2_jacob, z_2_x_jacob)
 
         # batch_size, 1, out_repres_dim ** 2, 1, in_repres_dim ** 2
-        e_x_jacob_sum = e_x_jacob.sum(dim=-2, keepdim=True)
+        e_x_jacob_sum = e_x_jacob.sum(dim=4, keepdim=True).sum(dim=1, keepdim=True)
         # batch_size, 1, 1, 1, in_repres_dim ** 2
-        e_x_jacob_max, _ = torch.max(e_x_jacob_sum, dim=2, keepdim=True)
+        e_x_jacob_min, _ = torch.min(e_x_jacob_sum.view(batch_size, 1, self.out_repres_dim ** 2, 1, self.in_repres_dim, self.in_repres_dim), dim=2, keepdim=True)
         # batch_size, 1, out_repres_dim ** 2, 1, in_repres_dim ** 2
-        e_x_jacob_max = e_x_jacob_max.expand_as(e_x_jacob_sum)
+        e_x_jacob_min = e_x_jacob_min.view(batch_size, 1, 1, 1, 1, self.in_repres_dim, self.in_repres_dim).expand_as(e_x_jacob_sum)
 
         # batch_size, out_channels, out_repres_dim ** 2, in_channels, in_repres_dim ** 2
-        jacob_mask = torch.where(e_x_jacob_sum < e_x_jacob_max, 0.0, 1.0).expand_as(q_x_jacob)
-        q_x_jacob_masked = torch.where(jacob_mask == 1.0, q_x_jacob, 0.0).permute(0, 3, 4, 1, 2).contiguous()
-        '''
-        q_x_jacob_masked = q_x_jacob.sum(dim=0).permute(3, 4, 5, 6, 0, 1, 2).contiguous()
+        jacob_mask = torch.where(e_x_jacob_sum > e_x_jacob_min, 0.0, 1.0).expand_as(z_2_x_jacob)
+        z_2_x_jacob_masked = torch.where(jacob_mask == 1.0, z_2_x_jacob, 0.0).permute(0, 4, 5, 6, 1, 2, 3).contiguous()
 
-        #z_q_masked = x.matmul(q_x_jacob_masked)
-        z_q_masked = torch.einsum('abcd,abcdefg->aefg', x, q_x_jacob_masked)
-        #z_q_masked = z_q_masked.permute(0, 2, 3, 1).contiguous()
-        #z_q_masked = self.hopfield(z_q_masked).
-        #z_q_masked = z_q_masked.permute(0, 2, 1).contiguous()
-
-        return z_q_masked
+        z_2_masked = torch.einsum('abcd,abcdefg->aefg', x, z_2_x_jacob_masked)
+        
+        return self.z_2_q(z_2_masked)
 
 class Block2(nn.Module):
     def __init__(self, in_channels, out_channels, num_residual_layers, num_residual_hiddens, num_embeddings=512):
